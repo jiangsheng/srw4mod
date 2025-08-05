@@ -106,12 +106,23 @@ namespace Srw4Mod
                                         int? weaponIndex = ParseHex(weaponCode);
                                         if (weaponIndex.HasValue)
                                         {
-                                            var weaponName = cellText.Substring(index + 1);
+                                            string? weaponName;
+                                            switch(weaponIndex.Value)
+                                            {
+                                                case 0x0203:
+                                                    weaponName = "ハンドビーム"; break;
+                                                case 0x0204:
+                                                    weaponName = "ビームランチャー";break;                                                
+                                                default:
+                                                    weaponName = WebUtility.HtmlDecode(cellText.Substring(index + 1));                                                   
+                                                    break;
+                                            }
                                             weapons.Add(new Weapon
                                             {
-                                                Id =(ushort) weaponIndex.Value,
+                                                Id = (ushort)weaponIndex.Value,
                                                 Name = WebUtility.HtmlDecode(weaponName)
                                             });
+
                                         }
 
                                     }

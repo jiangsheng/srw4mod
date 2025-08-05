@@ -24,13 +24,12 @@ namespace Entities
         public byte UnitSizeBit { get; set; }
         public byte BackgroundMusic { get; set; }
         public byte TransformOrCombineType { get; set; }
-        public byte UnknownUnitSpecialSkill1 { get; set; }
         public byte UnknownUnitSpecialSkill2 { get; set; }
         public bool HasSword { get; private set; }
         public int BeamCoatType { get; private set; }
         public bool HasAfterimage { get; private set; }
         public bool HasShield { get; private set; }
-        public byte EnergyRecoveryType { get; private set; }
+        public bool HasEnergyRecovery{ get; private set; }
         public byte HPRecoveryType { get; private set; }
         public bool RageAndDetonateImmune { get; private set; }
         public bool IsAggressive { get; set; }
@@ -140,17 +139,15 @@ namespace Entities
 
             var unitSpecialSkill1 = playStationUnitData[offset++];
             var unitSpecialSkill2 = playStationUnitData[offset++];
-            unit.HasSword= (unitSpecialSkill1 & 0x40)!=0;
-            unit.EnergyRecoveryType = (byte)(unitSpecialSkill1 & 0x03);
+            unit.IsAggressive = (unitSpecialSkill1 & 0x1) != 0;
+            unit.HasEnergyRecovery = (unitSpecialSkill1 & 0x02) != 0;
             unit.HPRecoveryType = (byte)(unitSpecialSkill1 & 0x0C);
-            unit.RageAndDetonateImmune = (unitSpecialSkill1 & 0x80)!=0;
-            unit.UnknownUnitSpecialSkill1 = (byte) (unitSpecialSkill1 & (~0xCF));
-            
+            unit.HasSword= (unitSpecialSkill1 & 0x40)!=0;
+            unit.RageAndDetonateImmune = (unitSpecialSkill1 & 0x80)!=0;                
 
             unit.BeamCoatType = unitSpecialSkill2 & 0x0E;
             unit.HasAfterimage = (unitSpecialSkill2 & 0x10)!=0;
             unit.HasShield = (unitSpecialSkill2 & 0x20) != 0;
-            unit.IsAggressive = (unitSpecialSkill2 & 0x1) != 0;
             unit.UnknownUnitSpecialSkill2 = (byte)(unitSpecialSkill1 & (~0x3F));
             unit.Team = playStationUnitData[offset++];
             offset += 4;
@@ -239,8 +236,10 @@ namespace Entities
             stringBuilder.AppendFormat(", TransferFranchiseId: {0:X}", TransferFranchiseId);
             stringBuilder.AppendFormat(", Discardable: {0}", Discardable); 
             stringBuilder.AppendFormat(", UnitSize:{0:X} ({1})", UnitSize, FormatUnitSize(UnitSize));
-            if(UnitSizeBit!=0)
-                stringBuilder.AppendFormat(", Unknown UnitSize Bit:{0:X}", UnitSizeBit);
+            if (UnitSizeBit != 0)
+            {
+                //stringBuilder.AppendFormat(", Unknown UnitSize Bit:{0:X}", UnitSizeBit);
+            }
             stringBuilder.AppendFormat(", BackgroundMusic: {0:X}", BackgroundMusic);
             stringBuilder.AppendFormat(", TransformOrCombineType: {0:X}", TransformOrCombineType);
             stringBuilder.Append("\r\n");
@@ -248,14 +247,9 @@ namespace Entities
             {
                 stringBuilder.Append("剣装備");
             }
-            switch (EnergyRecoveryType)
+            if (HasEnergyRecovery)
             {
-                case 0x02:
-                    stringBuilder.Append(", EN恢復(小)"); break;
-                case 0x03:
-                    stringBuilder.Append(", EN恢復(大)"); break;
-                default:
-                    stringBuilder.Append(string.Format(" Unknown EnergyRecoveryType: {0}", EnergyRecoveryType)); break;
+                    stringBuilder.Append(", EN恢復");
             }
             switch (HPRecoveryType)
             {
@@ -269,10 +263,7 @@ namespace Entities
             {
                 stringBuilder.Append(",激怒/自爆/てかげん無効");
             }
-            if (UnknownUnitSpecialSkill1 != 0)
-            {
-                stringBuilder.AppendFormat(", Unknown unitSpecialSkill1 {0} ", FormatHex(UnknownUnitSpecialSkill1));
-            }
+
             switch (BeamCoatType)
             {
                 case 0x02: stringBuilder.Append(", ビームコート"); break;
@@ -294,7 +285,7 @@ namespace Entities
             }
             if (UnknownUnitSpecialSkill2 != 0)
             {
-                stringBuilder.AppendFormat(", Unknown unitSpecialSkill2 {0} ", FormatHex(UnknownUnitSpecialSkill2));
+                //stringBuilder.AppendFormat(", Unknown unitSpecialSkill2 {0} ", FormatHex(UnknownUnitSpecialSkill2));
             }
             stringBuilder.AppendFormat(", Team: {0:X}", Team);
             stringBuilder.AppendFormat(", Experience: {0:X}", Experience);
