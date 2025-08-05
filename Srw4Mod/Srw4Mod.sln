@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36301.6 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Srw4Mod", "Srw4Mod.csproj", "{A6F8A194-EBAA-468F-9886-0BC618185C5B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Entities", "..\Entities\Entities.csproj", "{0E8E7E2E-3411-4FDF-A73B-2B3CB64699D9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A6F8A194-EBAA-468F-9886-0BC618185C5B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6F8A194-EBAA-468F-9886-0BC618185C5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6F8A194-EBAA-468F-9886-0BC618185C5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6F8A194-EBAA-468F-9886-0BC618185C5B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0E8E7E2E-3411-4FDF-A73B-2B3CB64699D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E8E7E2E-3411-4FDF-A73B-2B3CB64699D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E8E7E2E-3411-4FDF-A73B-2B3CB64699D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E8E7E2E-3411-4FDF-A73B-2B3CB64699D9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F3B86F7A-FF2F-4A5F-9DCB-DC0CD46EB896}
+	EndGlobalSection
+EndGlobal
