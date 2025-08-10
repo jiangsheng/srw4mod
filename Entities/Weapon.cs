@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Entities
 {
-    public class Weapon
+    public class Weapon : IRstFormatter
     {
         public static int BaseOffset { get; set; }
         public int Id { get; set; }
@@ -39,21 +39,21 @@ namespace Entities
         public bool HasAssigneOwner { get; set; }
         public string? FirstOwner { get; set; }
 
-        public static List<Weapon>? Parse(byte[] playStationWeaponData, int startOffset, List<Weapon> weapons)
+        public static List<Weapon>? Parse(byte[] weaponData, int headerStartOffset, int offsetBase, int footerOffset, List<Weapon> weapons)
         {
-            var magicMark = BitConverter.ToUInt16(playStationWeaponData, startOffset);
+            var magicMark = BitConverter.ToUInt16(weaponData, headerStartOffset);
             Debug.Assert(magicMark == 0);
 
-            var firstWeaponOffset = BitConverter.ToUInt16(playStationWeaponData, startOffset + 2);
-            var footerAddressOffset = BitConverter.ToUInt16(playStationWeaponData, startOffset + firstWeaponOffset - 2);
+            var firstWeaponAddressOffset = BitConverter.ToUInt16(weaponData, headerStartOffset + 2);
 
             var weaponList = new List<Weapon>();
 
-            for (int weaponIndex = 1; weaponIndex < firstWeaponOffset / 2; weaponIndex++)
+            for (int weaponIndex = 1; weaponIndex < firstWeaponAddressOffset; weaponIndex++)
             {
-                var weaponOffset = BitConverter.ToUInt16(playStationWeaponData, startOffset + weaponIndex * 2);
-                if (weaponOffset ==0|| weaponOffset == footerAddressOffset) continue;//no data at this address
-                Weapon weapon = ParseWeapon(playStationWeaponData, startOffset + weaponOffset, weaponIndex);
+                var weaponOffset = BitConverter.ToUInt16(weaponData, headerStartOffset + weaponIndex * 2);
+                if (weaponOffset == 0) continue;//no data at this address
+                if (weaponOffset >= footerOffset) break;//reached footer
+                Weapon weapon = ParseWeapon(weaponData, offsetBase + weaponOffset, weaponIndex);
                 FixWeaponData(weapon, weapons);
                 weaponList.Add(weapon);
             }
@@ -68,7 +68,9 @@ namespace Entities
                 Debug.WriteLine(string.Format("unable to find unit with id {0}", weapon.Id));
                 return;
             }
-            weapon.Name = fixUnit.Name;
+            if(fixUnit.Name!=null)
+                weapon.Name = fixUnit.Name.Trim()
+                    ;
         }
 
         private static Weapon ParseWeapon(byte[] playStationWeaponData, int baseOffset, int unitIndex)
@@ -87,7 +89,7 @@ namespace Entities
                     weapon.IsResupply = true;
                     break;
                 default:
-                    if (weapon.TypeCode1 >= 0x80 && weapon.TypeCode1 <= 0x0f)
+                    if (weapon.TypeCode1 >= 0x80 && weapon.TypeCode1 <= 0x8f)
                     {
                         weapon.IsMap = true;
                     }
@@ -97,25 +99,33 @@ namespace Entities
             }
             weapon.TypeCode2 = playStationWeaponData[offset++];
             weapon.IsCountercutable = (weapon.TypeCode2 & 0x20) != 0;
-            weapon.IsBeam = (weapon.TypeCode2 & 0x40) != 0;
-            weapon.IsPortable = (weapon.TypeCode2 & 0x80) == 0;
+            weapon.IsBeam = (weapon.TypeCode2 & 0x80) != 0;
+            weapon.IsPortable = (weapon.TypeCode2 & 0x40) == 0;
             weapon.TypeCode2LowerHalf = (byte)(weapon.TypeCode2 & 0x0f);
             weapon.PilotQuote = playStationWeaponData[offset++];
             weapon.BattleAnimation = BitConverter.ToUInt16(playStationWeaponData, offset);
             offset += 2;
             weapon.Damage = BitConverter.ToUInt16(playStationWeaponData, offset);
+            Debug.Assert(weapon.Damage <= 18000);
             offset += 2;
+
             weapon.AccuracyBonus = (sbyte)playStationWeaponData[offset++];
             weapon.CriticalHitRateBonusAndUpgradeCostType = playStationWeaponData[offset++];
             weapon.CriticalHitRateBonusType = (byte)(weapon.CriticalHitRateBonusAndUpgradeCostType & 0xF0);
             weapon.UpgradeCostType = (byte)(weapon.CriticalHitRateBonusAndUpgradeCostType & 0x0F);
             weapon.MinRange = playStationWeaponData[offset++];
+            Debug.Assert(weapon.MinRange < 15);
             weapon.MaxRange = playStationWeaponData[offset++];
+            Debug.Assert(weapon.MaxRange < 15);
             weapon.TerrainAdaption = playStationWeaponData[offset++];
             weapon.MaxAmmo = playStationWeaponData[offset++];
+            Debug.Assert(weapon.MaxAmmo <= 50);
             weapon.EnergyCost = playStationWeaponData[offset++];
+            Debug.Assert(weapon.EnergyCost <= 150);
             weapon.RequiredWill = playStationWeaponData[offset++];
+            Debug.Assert(weapon.RequiredWill <= 150);
             weapon.RequiredSkill = playStationWeaponData[offset++];
+            Debug.Assert(weapon.RequiredSkill < 0x40);
             return weapon;
         }
         private static string FormatTerrainAdaption(byte terrainAdaption)
@@ -142,15 +152,13 @@ namespace Entities
         {
             switch (pilotQuote)
             {
-                case 0x03:
-                    return "xx発射！！";
                 default:
-                    return pilotQuote.ToString();
+                    return pilotQuote.ToString("X");
             }
         }
         private static string FormatCriticalHitRateBonusType(byte criticalHitBonusType)
         {
-            int criticalHitRateBonus = criticalHitBonusType/16 * 10 - 10;
+            int criticalHitRateBonus = criticalHitBonusType / 16 * 10 - 10;
             return criticalHitRateBonus.ToString();
         }
         public override string ToString()
@@ -159,50 +167,32 @@ namespace Entities
                 = new StringBuilder();
             stringBuilder.AppendFormat("Id: {0:X}", Id);
             stringBuilder.AppendFormat(", Name: {0}", Name);
-            stringBuilder.AppendFormat(", BaseOffset: {0:X}", BaseOffset);
-
-            stringBuilder.AppendFormat(", TypeCode: {0:X}{1:X}", TypeCode1, TypeCode2);
-            if (IsRepair)
-            {
-                stringBuilder.AppendFormat(", Repair");
-            }
-            if (IsResupply)
-            {
-                stringBuilder.AppendFormat(", Resupply");
-            }
             if (IsMelee)
-            {
-                stringBuilder.AppendFormat(", Melee");
-            }
+                stringBuilder.Append("🤛");
             if (IsMap)
-            {
-                stringBuilder.AppendFormat(", Map");
-            }
-            if (IsCountercutable)
-            {
-                stringBuilder.AppendFormat(", Countercutable");
-            }
-            if (IsBeam)
-            {
-                stringBuilder.AppendFormat(", Beam");
-            }
+                stringBuilder.Append("🗺️");
             if (IsPortable)
-            {
-                stringBuilder.AppendFormat(", Portable");
-            }
-
+                stringBuilder.Append("Ⓟ");
+            if (IsRepair)
+                stringBuilder.Append("🔧");
+            if (IsResupply)
+                stringBuilder.Append("🔄");
+            if (IsCountercutable)
+                stringBuilder.Append("⚔");
+            if (IsBeam)
+                stringBuilder.Append("Ⓑ");
+            stringBuilder.AppendFormat(", BaseOffset: {0:X}", BaseOffset);
+            stringBuilder.AppendFormat(", TypeCode: {0:X2}{1:X2}", TypeCode1, TypeCode2);
             stringBuilder.AppendFormat(", TypeCode2LowerHalf: {0:X}", TypeCode2LowerHalf);
             stringBuilder.AppendFormat(", Quote: {0}", FormatPilotQuote(PilotQuote));
             stringBuilder.AppendFormat(", Animation: {0}", BattleAnimation);
             stringBuilder.AppendFormat(", Damage: {0}", Damage);
+            stringBuilder.AppendFormat(", Range: {0}~{1}", MinRange, MaxRange);
             stringBuilder.AppendFormat(", AccuracyBonus: {0}", AccuracyBonus);
+            stringBuilder.AppendFormat(", Terrain: {0}", FormatTerrainAdaption(TerrainAdaption));
             stringBuilder.AppendFormat(", CriticalHitRateBonus: {0}", FormatCriticalHitRateBonusType(CriticalHitRateBonusType));
 
-            stringBuilder.AppendFormat(", UpgradeCostType: {0}", UpgradeCostType);
-            stringBuilder.AppendFormat(", Range: {0}~{1}", MinRange, MaxRange);
-
-            stringBuilder.AppendFormat(", Terrain: {0}", FormatTerrainAdaption(TerrainAdaption));
-            if(MaxAmmo>0)
+            if (MaxAmmo > 0)
                 stringBuilder.AppendFormat(", Ammo: {0}", MaxAmmo);
             if (EnergyCost > 0)
                 stringBuilder.AppendFormat(", Energy: {0}", EnergyCost);
@@ -210,9 +200,70 @@ namespace Entities
                 stringBuilder.AppendFormat(", Will: {0}", RequiredWill);
             if (RequiredSkill > 0)
                 stringBuilder.AppendFormat(", Skill: {0:X}", RequiredSkill);
-            if(HasAssigneOwner)
+            stringBuilder.AppendFormat(", UpgradeCostType: {0}", UpgradeCostType);
+
+            if (HasAssigneOwner)
                 stringBuilder.AppendFormat(", FirstOwner: {0:X}", FirstOwner);
             return stringBuilder.ToString();
+        }
+
+        public string? ToRstRow(bool isPlayStation)
+        {
+            var row = new StringBuilder();
+            row.AppendLine(string.Format("   * - {0:X2}", this.Id));
+            row.Append(string.Format("     - {0}", this.Name));
+            if (IsMelee)
+                row.Append("🤛");
+            if (IsMap)
+                row.Append("🗺️");
+            if(IsPortable)
+                row.Append("Ⓟ");
+            if (IsRepair)
+                row.Append("🔧");
+            if (IsResupply)
+                row.Append("🔄");
+            if (IsCountercutable)
+                row.Append("⚔");
+            if (IsBeam)
+                row.Append("Ⓑ");
+
+            row.AppendLine();
+            row.AppendLine(string.Format("     - {0}", Damage));
+            if(MaxRange== MinRange)
+                row.AppendLine(string.Format("     - {0}", MinRange));
+            else
+                row.AppendLine(string.Format("     - {0}~{1}", MinRange, MaxRange));
+            row.AppendLine(string.Format("     - {0}", AccuracyBonus));
+            row.AppendLine(string.Format("     - {0}", FormatCriticalHitRateBonusType(CriticalHitRateBonusType)));
+            row.AppendLine(string.Format("     - {0}", FormatTerrainAdaption(TerrainAdaption)));
+            if(MaxAmmo>0)
+                row.AppendLine(string.Format("     - {0}", MaxAmmo));
+            else
+                row.AppendLine("     - ");
+            if(EnergyCost>0)
+                row.AppendLine(string.Format("     - {0}", EnergyCost));
+            else
+                row.AppendLine("     - ");
+            if (RequiredWill>0)
+                row.AppendLine(string.Format("     - {0}", RequiredWill));
+            else
+                row.AppendLine("     - ");
+            if(RequiredSkill>0)
+                row.AppendLine(string.Format("     - {0}", PilotSpiritCommandsOrSkill.Format(RequiredSkill)));
+            else
+                row.AppendLine("     - ");
+            row.AppendLine(string.Format("     - {0:X}", UpgradeCostType));
+            row.AppendLine(string.Format("     - {0}", FormatPilotQuote(PilotQuote)));  
+            if (string.IsNullOrEmpty(FirstOwner))
+            {
+                row.AppendLine("     - ");
+            }
+            else
+            {
+                row.AppendLine(string.Format("     - {0}", FirstOwner));
+            }
+
+            return row.ToString();
         }
     }
 }

@@ -26,48 +26,59 @@ namespace Srw4Mod
             settingFilePath = Path.Combine(settingFilePath, "config.json");
             ISettings settings = new ConfigurationBuilder<ISettings>().UseJsonFile(settingFilePath).Build();
             settings.PlayStationDataLocation = PromptForPath(string.Format("Please enter location for data folder from srw4s cd, enter for default ({0})", settings.PlayStationDataLocation), settings.PlayStationDataLocation);
+
             if (!Directory.Exists(settings.PlayStationDataLocation))
             {
                 ReportError(string.Format("Specified PlayStationDataLocation location {0} is invalid", settings.PlayStationDataLocation));
                 return;
             }
-            string playStationUnitDataPath = Path.Combine(settings.PlayStationDataLocation, "STAYDAT.BIN");
-            if (!File.Exists(playStationUnitDataPath))
+            settings.SnesDataLocation = PromptForPath(string.Format("Please enter location for srw4 rom, enter for default ({0})", settings.SnesDataLocation), settings.SnesDataLocation);
+            if (!Directory.Exists(settings.SnesDataLocation))
+            {
+                ReportError(string.Format("Specified SnesDataLocation location {0} is invalid", settings.SnesDataLocation));
+                return;
+            }
+            string playStationDataPath = Path.Combine(settings.PlayStationDataLocation, "STAYDAT.BIN");
+            if (!File.Exists(playStationDataPath))
             {
                 ReportError(string.Format("Specified folder does not have a file named STAYDAT.BIN"));
                 return;
             }
-            string playStationPilotDataPath = Path.Combine(settings.PlayStationDataLocation, "D_PILOT.BIN");
-            if (!File.Exists(playStationPilotDataPath))
+
+            string snesDataPath = Path.Combine(settings.SnesDataLocation, "Dai 4 Ji Super Robot Taisen (V1.1) (J).smc");
+            if (!File.Exists(snesDataPath))
             {
-                ReportError(string.Format("Specified folder does not have a file named D_PILOT.BIN"));
+                ReportError(string.Format("Specified folder does not have a file named Dai 4 Ji Super Robot Taisen (V1.1) (J).smc"));
                 return;
             }
-            string playStationWeaponDataPath = Path.Combine(settings.PlayStationDataLocation, "STAYDAT.BIN");
-            if (!File.Exists(playStationWeaponDataPath))
-            {
-                ReportError(string.Format("Specified folder does not have a file named STAYDAT.BIN"));
-                return;
-            }
-            byte[] playStationUnitData=File.ReadAllBytes(playStationUnitDataPath);
-            byte[] playStationPilotData = File.ReadAllBytes(playStationPilotDataPath);
-            byte[] playStationWeaponData=File.ReadAllBytes(playStationWeaponDataPath);
+            byte[] snesData = File.ReadAllBytes(snesDataPath);
+            byte[] playStationData=File.ReadAllBytes(playStationDataPath);
 
-            Rom playstationRom = new Rom();
-            playstationRom.Weapons=Weapon.Parse(playStationWeaponData, 0x2E800, weapons);
-            using (var writer = new StreamWriter("weapons.csv", false, Encoding.UTF8))
-            using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
-            {
-                csv.WriteRecords(playstationRom.Weapons);
-            }
-            playstationRom.Units = Unit.Parse(playStationUnitData,0x26000, units, playstationRom.Weapons);
+            Rom playstationRom = Rom.Parse(playStationData, weapons, units, pilots, 
+                0x2E800, 0x2E800, 0x2D90
+                , 0x26000, 0x26000, 0x361A
+                , 0x2a800, 0x2a800, true
+                );
+            Rom snesRom = Rom.Parse(snesData, weapons, units, pilots,
+                0xbc950, 0xb0000, 0xf6f0
+                , 0xb9311, 0xb0000, 0xc92e
+                ,0xb7012, 0xb0000, false
+                );
+            playstationRom.WriteCsv();
+            snesRom.WriteCsv();
+            playstationRom.WriteRst();
+            snesRom.WriteRst();
+            DumpData(snesRom.Weapons);
+        }
 
-            units = playstationRom.Units.OrderBy(u => u.Id).ToList();
-
-            using (var writer = new StreamWriter("units.csv", false,Encoding.UTF8))
-            using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+        private static void DumpData<T>(List<T>? data)
+        {
+            if(data!= null && data.Count > 0)
             {
-                csv.WriteRecords(units);
+                foreach (var item in data)
+                {
+                    Debug.WriteLine(item.ToString());
+                }
             }
         }
 
@@ -255,8 +266,8 @@ namespace Srw4Mod
                     return units.ToList();
                 }
             }
-            
         }
+
 
         private static void ReportError(string errorMessage)
         {

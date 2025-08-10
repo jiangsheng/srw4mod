@@ -10,6 +10,7 @@ namespace Srw4Mod
     {
         //location for data file from srw4s cd
         string PlayStationDataLocation { get; set; }
-
+        string SnesDataLocation { get; set; }
+        
     }
 }

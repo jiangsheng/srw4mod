@@ -20,6 +20,7 @@ namespace Entities
         public byte Range{ get; set; }
         public byte Ammo { get; set; }
         public byte En { get; set; }
+        public bool IsMap { get; set; }
 
         public override string ToString()
         {
@@ -28,6 +29,10 @@ namespace Entities
 
             stringBuilder.AppendFormat(" BaseOffset: {0:X}", BaseOffset);
             stringBuilder.AppendFormat(" Name: {0}", Name);
+            if ((IsMap))
+            {
+                stringBuilder.AppendFormat(" (Map)");
+            }
             stringBuilder.AppendFormat(" Damage: {0}", Damage);
             stringBuilder.AppendFormat(" Range: {0}", Range);
 
