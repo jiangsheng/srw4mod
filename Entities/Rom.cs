@@ -17,14 +17,14 @@ namespace Entities
         public List<Unit>? Units { get; set; }    
         public List<Weapon>? Weapons { get; set; }
         bool IsPlayStation { get; set; }
-        public static Rom Parse(byte[] romData, List<Weapon> weapons, List<Unit> units, List<Pilot> pilots,
+        public static Rom Parse(byte[] romData, List<WeaponMetaData> weaponMetaData, List<UnitMetaData> unitMetaData, List<PilotMetaData> pilotMetaData,
             int weaponHeaderStartOffset, int weaponOffsetBase, int weaponFooterOffset, int unitHeaderStartOffset, int unitOffsetBase, int unitFooterOffset, int pilotHeaderOffset, int pilotDataOffset, bool isPlayStation)
         {
             var result=new Rom();
             result.IsPlayStation = isPlayStation;
-            result.Weapons = Weapon.Parse(romData, weaponHeaderStartOffset, weaponOffsetBase, weaponFooterOffset, weapons);
-            result.Units = Unit.Parse(romData, unitHeaderStartOffset, unitOffsetBase, unitFooterOffset,units, result.Weapons);
-            result.Pilots = Pilot.Parse(romData, pilotHeaderOffset, pilotDataOffset,  pilots, isPlayStation);
+            result.Weapons = Weapon.Parse(romData, weaponHeaderStartOffset, weaponOffsetBase, weaponFooterOffset, weaponMetaData);
+            result.Units = Unit.Parse(romData, unitHeaderStartOffset, unitOffsetBase, unitFooterOffset, unitMetaData, result.Weapons);
+            result.Pilots = Pilot.Parse(romData, pilotHeaderOffset, pilotDataOffset, pilotMetaData, isPlayStation);
             return result;
         }
 
@@ -34,6 +34,36 @@ namespace Entities
             WriteCsv(string.Format("{0}Weapons.csv", prefix), Weapons);
             WriteCsv(string.Format("{0}Units.csv", prefix), Units);
             WriteCsv(string.Format("{0}Pilots.csv", prefix), Pilots);
+            if (!IsPlayStation)
+            {
+                //write fixed metadata
+                WriteCsv(string.Format("Franchise.csv"), Franchise.Franchises);
+                var units = this.Units.Select(u => new UnitMetaData
+                {
+                    Id = u.Id,
+                    Affiliation = u.Affiliation,    
+                    FranchiseName=u.FranchiseName,
+                    Name = u.Name,
+                    EnglishName = u.EnglishName,
+                    PreferredPilotId=u.PreferredPilotId
+                }).ToList();
+                WriteCsv("UnitMetaData.csv", units);
+                var pilots = this.Pilots.Select(p => new PilotMetaData
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    FranchiseName = p.FranchiseName,
+                    Affiliation = p.Affiliation,
+                    EnglishName = p.EnglishName,
+                }).ToList();
+                WriteCsv("PilotMetaData.csv", pilots);
+                var weapons = this.Weapons.Select(p => new WeaponMetaData
+                {
+                    Id = p.Id,
+                    Name = p.Name
+                }).ToList();
+                WriteCsv("WeaponMetaData.csv", weapons);
+            }
         }
         private static void WriteCsv<T>(string fileName, List<T>? data)
         {
@@ -60,16 +90,15 @@ namespace Entities
             WriteRst(string.Format("weapon_data_{0}.rst", postfix),
                  IsPlayStation ? "https://jiangsheng.net/build/html/_sources/games/srw4/units/weapon_data_ps.rst.txt"
                 : "https://jiangsheng.net/build/html/_sources/games/srw4/units/weapon_data_snes.rst.txt"
-                , Weapons);
+                , Weapons);           
         }
+
         void WriteRst<T>(string fileName, string rstUrl, List<T> data) where T : IRstFormatter
         {
             using (WebClient webClient = new WebClient())
             {
                 var fileTemplate = webClient.DownloadString(rstUrl);
                 var lines = fileTemplate.Split(new[] { '\n' });
-                var header = string.Empty;
-                var footer = string.Empty;
                 int bodyLine = -1;
                 int lastRawHtmlLine = -1;
                 for (int i= 0; i<lines.Length; i++ )
@@ -97,7 +126,14 @@ namespace Entities
                 {
                     for(int i= lastRawHtmlLine; i< lines.Length; i++ )
                     {
-                        stringBuilder.AppendLine(lines[i]);
+                        if (i <= lines.Length - 1)
+                        {
+                            stringBuilder.AppendLine(lines[i]);
+                        }
+                        else
+                        {
+                            stringBuilder.Append(lines[i]);
+                        }
                     }
                 }
                 File.WriteAllText(fileName, stringBuilder.ToString(), Encoding.UTF8);

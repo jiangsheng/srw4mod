@@ -13,7 +13,7 @@ namespace Entities
         public bool IsConditional { get; set; }
         public ushort WeaponIndex { get; set; }
         public byte AmmoSlot { get; set; }
-        public byte AvailabilAtStage { get; set; }
+        public byte AvailableAtStage { get; set; }
         public string? Name { get; set; }
         public string? FirstOwner { get; set; }
         public ushort Damage { get; set; }
@@ -52,7 +52,7 @@ namespace Entities
 
             if (IsConditional)
             {
-                stringBuilder.AppendFormat(" AvailabilAtStage: {0:X}", AvailabilAtStage);
+                stringBuilder.AppendFormat(" AvailableAtStage: {0:X}", AvailableAtStage);
             }
             if (!string.IsNullOrEmpty(FirstOwner))
             {

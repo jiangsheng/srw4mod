@@ -1,5 +1,6 @@
 ﻿using Config.Net;
 using CsvHelper;
+using CsvHelper.Configuration;
 using Entities;
 using HtmlAgilityPack;
 using System.Diagnostics;
@@ -53,6 +54,7 @@ namespace Srw4Mod
             }
             byte[] snesData = File.ReadAllBytes(snesDataPath);
             byte[] playStationData=File.ReadAllBytes(playStationDataPath);
+            Franchise.Franchises= LoadFranchises();
 
             Rom playstationRom = Rom.Parse(playStationData, weapons, units, pilots, 
                 0x2E800, 0x2E800, 0x2D90
@@ -68,9 +70,38 @@ namespace Srw4Mod
             snesRom.WriteCsv();
             playstationRom.WriteRst();
             snesRom.WriteRst();
-            DumpData(snesRom.Weapons);
+            var unitsFolder = Path.Combine(Environment.CurrentDirectory, "units");
+            var pilotsFolder = Path.Combine(Environment.CurrentDirectory, "pilots");
+            if(!Directory.Exists(unitsFolder))
+            {
+                Directory.CreateDirectory(unitsFolder);
+            }
+            if (!Directory.Exists(pilotsFolder))
+            {
+                Directory.CreateDirectory(pilotsFolder);
+            }
+            
+            foreach (var franchise in Franchise.Franchises)
+            {
+                string franchiseComment = string.Empty;
+                franchise.WriteUnitRst(unitsFolder,units,
+                    snesRom.Units,playstationRom.Units,
+                    snesRom.Pilots, playstationRom.Pilots
+                    ,snesRom.Weapons,playstationRom.Weapons, franchiseComment);
+                franchise.WritePilotRst(pilotsFolder,units, snesRom.Pilots, playstationRom.Pilots);
+            }
+            DumpData(playstationRom.Pilots);
         }
 
+        private static List<Franchise> LoadFranchises()
+        {
+            using (var reader = new StreamReader("Franchise.csv", Encoding.UTF8))
+            using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+            {
+                var pilots = csv.GetRecords<Franchise>();
+                return pilots.ToList();
+            }
+        }
         private static void DumpData<T>(List<T>? data)
         {
             if(data!= null && data.Count > 0)
@@ -82,8 +113,9 @@ namespace Srw4Mod
             }
         }
 
-        private static List<Weapon> DownloadWeaponData()
+        private static List<WeaponMetaData> DownloadWeaponData()
         {
+            /*
             if (!File.Exists("weapons.csv"))
             {
                 List<Weapon> weapons= new List<Weapon>();
@@ -158,21 +190,18 @@ namespace Srw4Mod
                     var weapons = csv.GetRecords<Weapon>();
                     return weapons.ToList();
                 }
-            }
-        }
-
-        private static int? ParseHex(string hexCode)
-        {
-            int result = 0;
-            if (int.TryParse(hexCode, NumberStyles.HexNumber, CultureInfo.CurrentCulture, out result))
+            }*/
+            using (var reader = new StreamReader("WeaponMetaData.csv", Encoding.UTF8))
+            using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
             {
-                return result;
+                var weapons = csv.GetRecords<WeaponMetaData>();
+                return weapons.ToList();
             }
-            return null;
         }
 
-        private static List<Pilot> DownloadPilotData()
+        private static List<PilotMetaData> DownloadPilotData()
         {
+            /*
             if (!File.Exists("pilots.csv"))
             {
                 List<Pilot> pilots = new List<Pilot>();
@@ -194,7 +223,7 @@ namespace Srw4Mod
                             {
                                 pilot.Id = pilotId.Value;
                                 pilot.Affiliation = WebUtility.HtmlDecode(cells[1].InnerText);
-                                pilot.Franchise = WebUtility.HtmlDecode(cells[4].InnerText);
+                                pilot.FranchiseName = WebUtility.HtmlDecode(cells[4].InnerText);
                                 pilot.Name = WebUtility.HtmlDecode(cells[3].InnerText);
                                 pilots.Add(pilot);
                             }
@@ -216,10 +245,19 @@ namespace Srw4Mod
                     return pilots.ToList();
                 }
             }
+            */
+            using (var reader = new StreamReader("PilotMetaData.csv", Encoding.UTF8))
+            using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+            {
+                var pilots = csv.GetRecords<PilotMetaData>();
+                return pilots.ToList();
+            }
         }
 
-        private static List<Unit> DownloadUnitData()
+        private static List<UnitMetaData> DownloadUnitData()
         {
+            /*
+          
             if (!File.Exists("units.csv"))
             {
                 List<Unit> units = new List<Unit>();
@@ -243,7 +281,7 @@ namespace Srw4Mod
                             {
                                 unit.Id = unitId.Value;
                                 unit.Affiliation = WebUtility.HtmlDecode(cells[1].InnerText);
-                                unit.Franchise = WebUtility.HtmlDecode(cells[4].InnerText);
+                                unit.FranchiseName = WebUtility.HtmlDecode(cells[4].InnerText);
                                 unit.Name = WebUtility.HtmlDecode(cells[3].InnerText);
                                 units.Add(unit);
                             }
@@ -265,6 +303,13 @@ namespace Srw4Mod
                     var units=csv.GetRecords<Unit>(); 
                     return units.ToList();
                 }
+            }*/
+
+            using (var reader = new StreamReader("UnitMetaData.csv", Encoding.UTF8))
+            using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+            {
+                var pilots = csv.GetRecords<UnitMetaData>();
+                return pilots.ToList();
             }
         }
 

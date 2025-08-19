@@ -1,0 +1,243 @@
+﻿Id,Name,Affiliation,FranchiseName,EnglishName
+1,チャム・ファウ,自,ダンバイン,Cham Fau
+2,ベル・アール,自,ダンバイン,Bell Earl
+3,エル・フィノ,自,ダンバイン,El Fino
+4,リリス・ファウ,自,エルガイム,Lilith Fau
+5,シルキー・マウ,自,ダンバイン,Silky Mau
+7,ジャック・キング,自,ゲッター,Jack King
+8,メリー・キング,自,ゲッター,Mary King
+9,流竜馬,自,ゲッター,Ryoma Nagare
+10,神隼人,自,ゲッター,Hayato Jin
+11,車弁慶,自,ゲッター,Benkei Kuruma
+12,北条真吾,自,ゴーショーグン,Shingo Hojo
+13,レミー島田,自,ゴーショーグン,Remy Shimada
+14,キリー=ギャグレー,自,ゴーショーグン,Killy Gagley
+15,神勝平,自,ザンボット3,Kappei Jin
+16,神江宇宙太,自,ザンボット3,Uchuuta Kamie
+17,神北恵子,自,ザンボット3,Keiko Kamikita
+18,藤原忍,自,ダンクーガ,Shinobu Fujiwara
+19,結城沙羅,自,ダンクーガ,Sara Yuki
+20,式部雅人,自,ダンクーガ,Masato Shikibu
+21,司馬亮,自,ダンクーガ,Ryo Shiba
+22,葵豹馬,自,コンバトラーV,Hyoma Aoi
+23,浪花十三,自,コンバトラーV,Juzo Naniwa
+24,西川大作,自,コンバトラーV,Daisaku Nishikawa
+25,南原ちづる,自,コンバトラーV,Chizuru Nanbara
+26,北小介,自,コンバトラーV,Kosuke Kita
+27,ギリアム・イェーガー,盟,オリジナル,Gilliam Yeager
+28,ショウ・ザマ,自,ダンバイン,Show Zama
+29,マサキ・アンドー,自,オリジナル,Masaki Andoh
+30,リューネ・ゾルダーク,自,オリジナル,Ryune Zoldark
+31,シュウ・シラカワ,自,オリジナル,Shu Shirakawa
+32,クワトロ・バジーナ,自,Zガンダム,Quattro Bajeena
+33,ブライト・ノア,自,ガンダム0079,Bright Noah
+34,ハヤト・コバヤシ,盟,ガンダム0079,Hayato Kobayashi
+35,カイ・シデン,盟,Zガンダム,Kai Shiden
+36,マチルダ・アジャン,盟,ガンダム0079,Matilda Ajan
+37,セイラ・マス(没),没,ガンダム0079,Sayla Mass
+38,ワッケイン(没),没,ガンダム0079,Wakkein
+39,ティアンム提督(没),没,ガンダム0079,Admiral Tianem
+40,エマ・シーン,自,Zガンダム,Emma Sheen
+41,トーレス,自,Zガンダム,Torres
+42,ファ・ユイリィ,自,Zガンダム,Fa Yuiry
+43,カツ・コバヤシ,自,Zガンダム,Katz Kobayashi
+44,フォウ・ムラサメ,自,Zガンダム,Four Murasame
+45,ベルトーチカ・イルマ,盟,Zガンダム,Beltorchika Irma
+46,ケリィ・レズナー,敌,ガンダム0083,Kelly Layzner
+47,ヘンケン・ベッケナー,盟,Zガンダム,Henken Bekkener
+48,ブレックス・フォーラ,盟,Zガンダム,Blex Forer
+49,ルー・ルカ,自,ZZガンダム,Roux Louka
+50,エルピー・プル,自,ZZガンダム,Elpeo Ple
+51,プルツー,自,ZZガンダム,Ple Two
+52,リィナ・アーシタ,盟,ZZガンダム,Leina Ashta
+53,ビーチャ・オレーグ,盟,ZZガンダム,Beecha Oleg
+54,モンド・アガケ(没),没,ZZガンダム,Mondo Agake
+55,エル・ビアンノ,盟,ZZガンダム,Elle Viano
+56,イーノ・アッバーブ(没),没,ZZガンダム,Iino Abbav
+57,エマリー・オンス,盟,ZZガンダム,Emary Ounce
+58,クェス・パラヤ,自,逆襲のシャア,Quess Paraya
+59,チェーン・アギ,盟,逆襲のシャア,Chan Agi
+60,ケーラ・スゥ,自,逆襲のシャア,Kayra Su
+61,ハサウェイ・ノア,自,Zガンダム,Hathaway Noah
+62,クリスチーナ・マッケンジー,自,ガンダム0080,Christina Mackenzie
+63,バーナード・ワイズマン,自,ガンダム0080,Bernard Wiseman
+64,セシリー・フェアチャイルド,自,ガンダムF91,Cecily Fairchild
+65,ニナ・パープルトン,盟,ガンダム0083,Nina Purpleton
+66,アナベル・ガトー,自,ガンダム0083,Anavel Gato
+67,チャック・キース,自,ガンダム0083,Chuck Keith
+68,ベルナルド・モンシア,没,ガンダム0083,Bernard Monsha
+69,弓さやか,自,マジンガーZ,Sayaka Yumi
+70,ラムサス・ハサ,敌,Zガンダム,Ramsus Hasa
+71,ボス,自,マジンガーZ,Boss
+72,炎ジュン,自,グレートマジンガー,Jun Hono
+73,マリア・フリード,自,グレンダイザー,Maria Fleed
+74,牧場ひかる,自,グレンダイザー,Hikaru Makiba
+75,早乙女ミチル,盟,ゲッター,Michiru Saotome
+76,ダンゲル・クーパー,敌,Zガンダム,Dunkel Cooper
+77,神宮寺力,自,ライディーン,Riki Jinguuji
+78,明日香麗,自,ライディーン,Rei Asuka
+79,桜野マリ,自,ライディーン,Mari Sakurano
+80,アムロ・レイ,自,ガンダム0079,Amuro Ray
+81,カミーユ・ビダン,自,Zガンダム,Kamille Bidan
+82,ジュドー・アーシタ,自,ZZガンダム,Judau Ashta
+83,シーブック・アノー,自,ガンダムF91,Seabook Arno
+84,コウ・ウラキ,自,ガンダム0083,Kou Uraki
+85,兜甲児,自,マジンガーZ,Koji Kabuto
+86,神北兵左ェ門,盟,ザンボット3,Heizaemon Kamikita
+87,神梅江,盟,ザンボット3,Umee Jin
+88,神源五郎,盟,ザンボット3,Gengorou Jin
+89,神一太郎,盟,ザンボット3,Ichitaro Jin
+90,ギャリソン時田,自,ダイターン3,Garrison Tokida
+91,ビューティフル・タチバナ,盟,ダイターン3,Beautiful Tachibana 
+92,三条レイカ,盟,ダイターン3,Reika Sanjo
+93,戸田突太,盟,ダイターン3,Totta Toda
+94,剣鉄也,自,グレートマジンガー,Tetsuya Tsurugi
+95,夕月京四郎,自,ダイモス,Kyoshiro Yuzuki
+96,和泉ナナ,自,ダイモス,Nana Izumi
+97,デューク・フリード,自,グレンダイザー,Duke Fleed
+98,マーベル・フローズン,自,ダンバイン,Marvel Frozen
+99,ひびき洸,自,ライディーン,Akira Hibiki
+100,ニー・ギブン,自,ダンバイン,Knee Given
+101,キーン・キッス,自,ダンバイン,Keen Kiss
+102,シーラ・ラパーナ,自,ダンバイン,Sheila Rapana
+103,エレ・ハンム,自,ダンバイン,Ele Ham
+104,リムル・ルフト,自,ダンバイン,Rimuru Luft
+105,エイブ・タマリ,盟,ダンバイン,Abe Tamari
+106,破嵐万丈,自,ダイターン3,Banjo Haran
+107,竜崎一矢,自,ダイモス,Kazuya Ryuzaki
+108,連邦軍兵士,盟,オリジナル,EFGF soldier
+109,バイストンウェル兵,敌,オリジナル,Byston Well Soldier
+110,テュッティ・ノールバック,自,オリジナル,Tutti Norlbach
+111,獣魔将軍,敌,劇場版マジンガーZ,Beast Demon General
+112,サウス・バニング,没,ガンダム0083,South Burning
+113,ホワン・ヤンロン,自,オリジナル,Huang Yanglong
+114,プレシア・ゼノサキス,盟,オリジナル,Presia Xenosakis
+115,ミオ・サスガ,自,オリジナル,Mio Sasuga
+116,ティターンズ兵士,敌,オリジナル,Titans Soldier
+117,モニカ・ビルセイア,自,オリジナル,Monica Villeseia
+118,サフィーネ・グレイス,自,オリジナル,Safine Grace
+119,ガデム,敌,ガンダム0079,Gadem
+120,ランバ・ラル,敌,ガンダム0079,Lamba Ral
+121,クラウレ・ハモン,敌,ガンダム0079,Claure Jamon
+122,クランプ,敌,ガンダム0079,Clamp
+123,ガイア,敌,ガンダム0079,Gaia
+124,マッシュ,敌,ガンダム0079,mash
+125,オルテガ,敌,ガンダム0079,Ortega
+126,シャリア・ブル,敌,ガンダム0079,Sharia Bull
+127,ララァ・スン,敌,ガンダム0079,Lala Sun
+128,ガディ・キンゼー,敌,Zガンダム,Gadi Kinsey
+129,カクリコン・カクーラー,敌,Zガンダム,Kacricon Cacooler
+130,サラ・ザビアロフ,自,Zガンダム,Sarah Zabiarov
+131,ゲーツ・キャパ,敌,Zガンダム,Gates Capa
+132,ジェリド・メサ,敌,Zガンダム,Jerid Messa
+133,ジャマイカン・ダニンガン,敌,Zガンダム,Jamaican Daninghan
+134,ジャミトフ・ハイマン,敌,Zガンダム,Jamitov Hymem
+135,ハマーン・カーン,敌,Zガンダム,Haman Karn
+136,ブラン・ブルターク,敌,Zガンダム,Buran Blutarch
+137,ベン・ウッダー,敌,Zガンダム,Ben Wooder
+138,マウアー・ファラオ,敌,Zガンダム,Mouar Pharaoh
+139,ミネバ・ザビ,敌,Zガンダム,Mineva Lao Zabi
+140,ライラ=ミラ=ライラ,敌,Zガンダム,Lila Milla Rira
+141,ヤザン・ゲーブル,敌,Zガンダム,Yazan Gable
+142,ロザミア・バダム,自,Zガンダム,Rosamia Badam
+143,マシュマー・セロ,敌,ZZガンダム,Mashymre Cello
+144,イリア・パゾム,敌,ZZガンダム,Ilia Pathom
+145,キャラ・スーン,敌,ZZガンダム,Chara Soon
+146,グレミー・トト,没,ZZガンダム,Glemy Toto
+147,ゴットン・ゴー,敌,ZZガンダム,Gottn Goh
+148,ニー・ギーレン,敌,ZZガンダム,Ni Gilleen
+149,ランス・ギーレン,敌,ZZガンダム,Lance Gielen
+150,ラカン・ダカラン,敌,ZZガンダム,Rakan Dahkaran
+151,ギュネイ・ガス,敌,逆襲のシャア,Günei Gas
+152,ナナイ・ミゲル,没,逆襲のシャア,Nanai Miguel
+153,レズン・シュナイダー,没,逆襲のシャア,Rezun Schneider
+154,ザビーネ・シャル,敌,ガンダムF91,Sabine Char
+155,アンナマリー・ブルージュ,敌,ガンダムF91,Anna Marie Bruges
+156,ドレル・ロナ,敌,ガンダムF91,Dorrell Rona
+157,カロッゾ・ロナ,敌,ガンダムF91,Carrozzo Rona
+158,シュタイナー,敌,ガンダム0080,Steiner
+159,シーマ・ガラハウ,敌,ガンダム0083,Cima Garahau
+160,あしゅら男爵,敌,マジンガーZ,Baron Ashura
+161,ブロッケン伯爵,敌,マジンガーZ,Count of Brocken
+162,Ｄｒヘル,敌,マジンガーZ,Dr Hell
+163,シャーキン,敌,ライディーン,Sharkin
+164,連邦軍兵士,盟,オリジナル,Federal Soldier
+165,エゥーゴ兵,盟,オリジナル,AEUG soldier
+166,バラオ,敌,ライディーン,Barao
+167,ガルーダ,敌,コンバトラーV,Garuda
+168,ミーア,敌,コンバトラーV,Miia
+169,オレアナ,敌,コンバトラーV,Oreana
+170,キラー・ザ・ブッチャー,敌,ザンボット3,Killer The Butcher
+171,コロス,敌,ダイターン3,Koros
+172,ドン・ザウサー,敌,ダイターン3,Don Zauser
+173,リヒテル提督,敌,ダイモス,Richter
+174,バルバス将軍,敌,ダイモス,Balbas
+175,ライザ,敌,ダイモス,Raiza
+176,アイザム,敌,ダイモス,Aizam
+177,レオナルド・メディチ・ブンドル,敌,ゴーショーグン,Leonardo Medici Bundle
+178,スーグニ・カットナル,敌,ゴーショーグン,Suegni Cuttnal
+179,ヤッター・ラ・ケルナグール,敌,ゴーショーグン,Yatta-la Kernagul
+180,トッド・ギネス,敌,ダンバイン,Todd Guinness
+181,バーン・バニングス,敌,ダンバイン,Burn Bannings
+182,黒騎士,敌,ダンバイン,Black Knight
+183,ドレイク・ルフト,敌,ダンバイン,Drake Luft
+184,ショット・ウェポン,敌,ダンバイン,Shot Weapon
+185,ビショット・ハッタ,敌,ダンバイン,Bishot Hatta
+186,ルーザ・ルフト,敌,ダンバイン,Luza Luft
+187,ミュージィ・ポー,敌,ダンバイン,Muzzy Poe
+188,ゼット・ライト（没）,没,ダンバイン,Zet Light
+189,トルストール・チェシレンコ,敌,ダンバイン,Tolstor Cheshilenko
+190,ジェリル・クチビ,敌,ダンバイン,Jeryl Kuchibi
+191,アレン・ブレディ,敌,ダンバイン,Allen Brady
+192,フェイ・チェンカ,敌,ダンバイン,Faye Chenka
+193,ガラリア・ニャムヒー,自,ダンバイン,Galaria Nyanhi
+194,ガラミティ・マンガン,敌,ダンバイン,Galamity Manganese
+195,ダー,敌,ダンバイン,Dah
+196,ニェット,敌,ダンバイン,Nyett
+197,暗黒大将軍,敌,グレートマジンガー,Great General of Darkness
+198,悪霊将軍ハーディアス,敌,グレートマジンガー,Evil Spirit General Hadias
+199,妖爬虫将軍ドレイドウ,敌,グレートマジンガー,Reptilian General Draydou
+200,DC兵士,敌,オリジナル,DC Soldier
+201,エリート兵,敌,オリジナル,Elite Soldier
+202,人工知能,敌,オリジナル,AI
+203,人工知能改,敌,オリジナル,AI Kai
+204,ゲスト兵士,敌,オリジナル,Guest soldier
+205,ゲスト突撃兵,敌,オリジナル,Guest Assault Soldier
+206,ゲスト親衛隊兵,敌,オリジナル,Guest Imperial Guard
+207,ポセイダル兵,敌,オリジナル,Poseidal soldier
+208,ポセイダル親衛隊兵,敌,オリジナル,Poseidal Imperial Guard
+209,エギーユ・デラーズ,敌,ガンダム0083,Aiguille Delaz
+210,ダバ・マイロード,自,エルガイム,Daba MyroadMyroad
+211,ガウ・ハ・レッシィ,自,エルガイム,Gaw Ha Leccee
+212,ミラウー・キャオ,盟,エルガイム,Mirawoo Kyao
+213,ファンネリア・アム,自,エルガイム,Fanaria Amm
+214,ハッシャ・モッシャ,敌,エルガイム, Hasha Moja
+215,ギャブレット・ギャブレー,自,エルガイム,Gavlet Gablae
+216,アマンダラ・カマンダラ,敌,エルガイム,Amandara Kamandara
+217,オルドナ・ポセイダル,敌,エルガイム,Oldna Poseidal
+218,ネイ・モー・ハン,敌,エルガイム,Nei Mo Han
+219,ギワザ・ロワウ,敌,エルガイム,Giwaza Lowau
+220,フル・フラット,敌,エルガイム,Full Flat
+221,クワサン・オリビー,自,エルガイム,Quwasan Olibee
+222,リョクレイ・ロン,敌,エルガイム,Rockley Ron
+223,アントン・ランド,敌,エルガイム,Anton Rando
+224,ヘッケラー・マウザー,敌,エルガイム,Heckler Mauser
+225,リィリィ・ハッシー,敌,エルガイム,Lily Hasshi
+226,チャイ・チャー,敌,エルガイム,Chai Char
+227,ワザン・ルーン,敌,エルガイム,Wassan Lune
+228,マフ・マクトミン,敌,エルガイム,Maph McTomin
+229,バーン・ガニア・キラーズ,敌,エルガイム,Baan Gania Killas
+230,テッド・デビラス,敌,エルガイム,Ted Devilas
+231,グロフィス・ラクレイン,敌,オリジナル,Glofis Raclayne
+232,ジュスティヌ・シャフラワース,敌,オリジナル,Justine Chafrois
+233,ゼブリーズ・フルシュワ,敌,オリジナル,Zebris Forschwa
+234,テイニクェット・ゼゼーナン,敌,オリジナル,Teniquette Zezernan
+235,メキボス,敌,オリジナル,Mekibos Bolverde
+236,テリウス・ビルセイア,盟,オリジナル,Telius Bilseia
+237,強化兵,敌,オリジナル, Enhanced Soldier
+238,三輪防人,敌,ダイモス,Sakamori Miwa
+239,超人工知能,敌,オリジナル,Super AI
+248,真实系男主人公,自,オリジナル,Male Protagonist (real)
+249,超级系男主人公,自,オリジナル,Male Protagonist (super)
+250,真实系女主人公,自,オリジナル,Female Protagonist (real)
+251,超级系女主人公,自,オリジナル,Female Protagonist (super)

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CsvHelper.Configuration.Attributes;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -7,13 +8,13 @@ using System.Threading.Tasks;
 
 namespace Entities
 {
-    public class Weapon : IRstFormatter
+    public class Weapon : IRstFormatter, INamedItem
     {
         public static int BaseOffset { get; set; }
         public int Id { get; set; }
         public byte TypeCode1 { get; set; }
         public byte TypeCode2 { get; set; }
-        public bool IsCountercutable { get; set; }
+        public bool IsDeflectable { get; set; }
         public bool IsBeam { get; set; }
         public bool IsPortable { get; set; }
         public byte TypeCode2LowerHalf { get; set; }
@@ -27,7 +28,7 @@ namespace Entities
         public ushort Damage { get; set; }
         public sbyte AccuracyBonus { get; set; }
         public byte CriticalHitRateBonusAndUpgradeCostType { get; set; }
-        public byte CriticalHitRateBonusType { get; set; }
+        public sbyte CriticalHitRateBonus { get; set; }
         public byte UpgradeCostType { get; set; }
         public byte MinRange { get; set; }
         public byte MaxRange { get; set; }
@@ -36,10 +37,11 @@ namespace Entities
         public byte EnergyCost { get; set; }
         public byte RequiredWill { get; set; }
         public byte RequiredSkill { get; set; }
-        public bool HasAssigneOwner { get; set; }
+        [Ignore]
+        public bool HasAssignedOwner { get; set; }
         public string? FirstOwner { get; set; }
 
-        public static List<Weapon>? Parse(byte[] weaponData, int headerStartOffset, int offsetBase, int footerOffset, List<Weapon> weapons)
+        public static List<Weapon>? Parse(byte[] weaponData, int headerStartOffset, int offsetBase, int footerOffset, List<WeaponMetaData> weaponMetaData)
         {
             var magicMark = BitConverter.ToUInt16(weaponData, headerStartOffset);
             Debug.Assert(magicMark == 0);
@@ -54,15 +56,15 @@ namespace Entities
                 if (weaponOffset == 0) continue;//no data at this address
                 if (weaponOffset >= footerOffset) break;//reached footer
                 Weapon weapon = ParseWeapon(weaponData, offsetBase + weaponOffset, weaponIndex);
-                FixWeaponData(weapon, weapons);
+                FixWeaponData(weapon, weaponMetaData);
                 weaponList.Add(weapon);
             }
             return weaponList;
         }
 
-        private static void FixWeaponData(Weapon weapon, List<Weapon> weapons)
+        private static void FixWeaponData(Weapon weapon, List<WeaponMetaData> weaponMetaData)
         {
-            var fixUnit = weapons.Where(u => u.Id == weapon.Id).FirstOrDefault();
+            var fixUnit = weaponMetaData.Where(u => u.Id == weapon.Id).FirstOrDefault();
             if (fixUnit == null)
             {
                 Debug.WriteLine(string.Format("unable to find unit with id {0}", weapon.Id));
@@ -98,7 +100,7 @@ namespace Entities
                     break;
             }
             weapon.TypeCode2 = playStationWeaponData[offset++];
-            weapon.IsCountercutable = (weapon.TypeCode2 & 0x20) != 0;
+            weapon.IsDeflectable = (weapon.TypeCode2 & 0x20) != 0;
             weapon.IsBeam = (weapon.TypeCode2 & 0x80) != 0;
             weapon.IsPortable = (weapon.TypeCode2 & 0x40) == 0;
             weapon.TypeCode2LowerHalf = (byte)(weapon.TypeCode2 & 0x0f);
@@ -111,7 +113,7 @@ namespace Entities
 
             weapon.AccuracyBonus = (sbyte)playStationWeaponData[offset++];
             weapon.CriticalHitRateBonusAndUpgradeCostType = playStationWeaponData[offset++];
-            weapon.CriticalHitRateBonusType = (byte)(weapon.CriticalHitRateBonusAndUpgradeCostType & 0xF0);
+            weapon.CriticalHitRateBonus = (sbyte)(((weapon.CriticalHitRateBonusAndUpgradeCostType & 0xF0) / 16) * 10 - 10);
             weapon.UpgradeCostType = (byte)(weapon.CriticalHitRateBonusAndUpgradeCostType & 0x0F);
             weapon.MinRange = playStationWeaponData[offset++];
             Debug.Assert(weapon.MinRange < 15);
@@ -156,11 +158,6 @@ namespace Entities
                     return pilotQuote.ToString("X");
             }
         }
-        private static string FormatCriticalHitRateBonusType(byte criticalHitBonusType)
-        {
-            int criticalHitRateBonus = criticalHitBonusType / 16 * 10 - 10;
-            return criticalHitRateBonus.ToString();
-        }
         public override string ToString()
         {
             StringBuilder stringBuilder
@@ -177,7 +174,7 @@ namespace Entities
                 stringBuilder.Append("🔧");
             if (IsResupply)
                 stringBuilder.Append("🔄");
-            if (IsCountercutable)
+            if (IsDeflectable)
                 stringBuilder.Append("⚔");
             if (IsBeam)
                 stringBuilder.Append("Ⓑ");
@@ -190,7 +187,7 @@ namespace Entities
             stringBuilder.AppendFormat(", Range: {0}~{1}", MinRange, MaxRange);
             stringBuilder.AppendFormat(", AccuracyBonus: {0}", AccuracyBonus);
             stringBuilder.AppendFormat(", Terrain: {0}", FormatTerrainAdaption(TerrainAdaption));
-            stringBuilder.AppendFormat(", CriticalHitRateBonus: {0}", FormatCriticalHitRateBonusType(CriticalHitRateBonusType));
+            stringBuilder.AppendFormat(", CriticalHitRateBonus: {0}", CriticalHitRateBonus);
 
             if (MaxAmmo > 0)
                 stringBuilder.AppendFormat(", Ammo: {0}", MaxAmmo);
@@ -202,7 +199,7 @@ namespace Entities
                 stringBuilder.AppendFormat(", Skill: {0:X}", RequiredSkill);
             stringBuilder.AppendFormat(", UpgradeCostType: {0}", UpgradeCostType);
 
-            if (HasAssigneOwner)
+            if (HasAssignedOwner)
                 stringBuilder.AppendFormat(", FirstOwner: {0:X}", FirstOwner);
             return stringBuilder.ToString();
         }
@@ -222,7 +219,7 @@ namespace Entities
                 row.Append("🔧");
             if (IsResupply)
                 row.Append("🔄");
-            if (IsCountercutable)
+            if (IsDeflectable)
                 row.Append("⚔");
             if (IsBeam)
                 row.Append("Ⓑ");
@@ -234,7 +231,7 @@ namespace Entities
             else
                 row.AppendLine(string.Format("     - {0}~{1}", MinRange, MaxRange));
             row.AppendLine(string.Format("     - {0}", AccuracyBonus));
-            row.AppendLine(string.Format("     - {0}", FormatCriticalHitRateBonusType(CriticalHitRateBonusType)));
+            row.AppendLine(string.Format("     - {0}", CriticalHitRateBonus));
             row.AppendLine(string.Format("     - {0}", FormatTerrainAdaption(TerrainAdaption)));
             if(MaxAmmo>0)
                 row.AppendLine(string.Format("     - {0}", MaxAmmo));

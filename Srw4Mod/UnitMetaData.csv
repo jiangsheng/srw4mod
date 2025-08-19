@@ -1,0 +1,290 @@
+﻿Id,Name,Affiliation,FranchiseName,EnglishName,PreferredPilotId
+1,ヒュッケバイン,自,オリジナル,Huckebein,250
+2,グルンガスト,自,オリジナル,Grungust,250
+3,ウイングガスト,自,オリジナル,Wing Gust,250
+4,ガストランダー,自,オリジナル,Gust Lander,250
+9,νガンダム,自,逆襲のシャア,Nu Gundam,80
+10,F-91,自,ガンダムF91,F-91,83
+11,NT-1アレックス,自,ガンダム0080,NT-1 Alex,62
+12,GP-01Fb,自,ガンダム0083,GP-01Fb,84
+13,GP-02A,自,ガンダム0083,GP-02A,0
+14,GP-03デンドロビウム,自,ガンダム0083,GP-03 Dendrobium,84
+15,GP-03ステイメン,自,ガンダム0083,GP-03 Staymen,84
+16,ガンキャノン,自,ガンダム0079,Gun Cannon,67
+17,ガンタンク,自,ガンダム0079,Gun Tank,0
+18,ボール,盟,ガンダム0079,Ball,0
+19,ネモ,自,Zガンダム,Nemo,61
+20,GM III,自,ZZガンダム,GM III,67
+21,ジェガン,自,逆襲のシャア,Jegan,49
+22,リ・ガズィ (MA),自,逆襲のシャア,Ri Gazi (MA),49
+23,リ・ガズィ (MS),自,逆襲のシャア,Ri Gazi (MS),49
+24,ゲッター1,自,ゲッター,Getter 1,9
+25,ゲッター2,自,ゲッター,Getter 2,10
+26,ゲッター3,自,ゲッター,Getter 3,11
+27,ゲッタードラゴン,自,ゲッター,Getter Dragon,9
+28,ゲッターライガー,自,ゲッター,Getter Liger,10
+29,ゲッターポセイドン,自,ゲッター,Getter Poseidon,11
+30,マジンガーZ,自,マジンガーZ,Mazinger Z,85
+31,マジンガーZ（JS）,自,マジンガーZ,Mazinger Z (JS),85
+32,グレートマジンガー,自,グレートマジンガー,Great Mazinger,86
+33,グレンダイザー,自,グレンダイザー,Grendizer,97
+34,スペイザー,自,グレンダイザー,Spacer,97
+35,ダブルスペイザー,自,グレンダイザー,Double Spacer,74
+36,ドリルスパイザー,自,グレンダイザー,Drill Spider,73
+37,マリンスペイザー,自,グレンダイザー,Marine Spacer,0
+38,グレンダイザー (WS),自,グレンダイザー,Grendizer (WS),97
+39,グレンダイザー (DS),自,グレンダイザー,Grendizer (DS),97
+40,グレンダイザー (MS),自,グレンダイザー,Grendizer (MS),97
+41,アフロダイA,自,マジンガーZ,Aphrodite A,69
+42,ダイアナンA,自,マジンガーZ,Diana A,69
+43,ボスロボット,自,マジンガーZ,Boss Borot,71
+44,ビューナスA,自,グレートマジンガー,Venus A,72
+45,バトルジェット,自,コンバトラーV,Battle Jet,22
+46,バトルクラッシャー,自,コンバトラーV,Battle Crusher,23
+47,バトルタンク,自,コンバトラーV,Battle Tank,24
+48,バトルマリン,自,コンバトラーV,Battle Marine,25
+49,バトロウクラフト,自,コンバトラーV,Battle Craft,26
+50,コンバトラーV,自,コンバトラーV,Combattler V,22
+51,ライディーン,自,ライディーン,Reideen,99
+52,ブルーガー,自,ライディーン,Bluegar,0
+53,ダイモス,自,ダイモス,Daimos,107
+54,ガルバーFXⅡ,自,ダイモス,Galva FX-II,79
+55,ダイターン3,自,ダイターン3,Daitarn 3,106
+56,ダイファイター,自,ダイターン3,Dai Fighter,106
+57,ダイタンク,自,ダイターン3,Dai Tank,106
+58,ザンバード,自,ザンボット3,Zambird,15
+59,ザンボエース,自,ザンボット3,Zambo Ace,15
+60,ザンブル,自,ザンボット3,Zambull,16
+61,ザンベース,自,ザンボット3,Zambase,17
+62,ザンボット3,自,ザンボット3,Zambot 3,15
+63,ダンバイン,自,ダンバイン,Dunbine,28
+64,ビルバイン,自,ダンバイン,Bilvine,28
+65,ウイングキャリバー,自,ダンバイン,Wing Caliber,28
+66,ゴーショーグン,自,ゴーショーグン,Goshogun,12
+67,ダンクーガ,自,ダンクーガ,Dancouga,18
+68,イーグルファイターN,自,ダンクーガ,Eagle Fighter N,18
+69,イーグルファイターA,自,ダンクーガ,Eagle Fighter A,18
+70,イーグルファイターH,自,ダンクーガ,Eagle Fighter H,18
+71,ランドクーガーN,自,ダンクーガ,Land Cougar N,19
+72,ランドクーガーA,自,ダンクーガ,Land Cougar A,19
+73,ランドクーガーH,自,ダンクーガ,Land Cougar H,19
+74,ランドライガーN,自,ダンクーガ,Land Liger N,20
+75,ランドライガーA,自,ダンクーガ,Land Liger A,20
+76,ランドライガーH,自,ダンクーガ,Land Liger H,20
+77,ビッグモスN,自,ダンクーガ,Big Moth N,21
+78,ビッグモスA,自,ダンクーガ,Big Moth A,21
+79,ビッグモスH,自,ダンクーガ,Big Moth H,21
+80,ブラッドテンプル,敌,エルガイム,Blood Temple,216
+81,アトールV,没,エルガイム,A Taul V,0
+82,ゴッドネロス,敌,ゴーショーグン,God Neros,0
+83,サイバスター,自,オリジナル,Cybuster,29
+84,サイバード,自,オリジナル,Cybird,29
+85,グランゾン,自,オリジナル,Granzon,31
+86,ネオ·グランゾン,敌,オリジナル,Neo Granzon,31
+87,ヴァルシオーネR,自,オリジナル,Valsione R,30
+88,ザムジード,自,オリジナル,Zamzeed,115
+89,グランヴェール,自,オリジナル,Granveil,113
+90,ガッデス,自,オリジナル,Gaddess,110
+91,ウィーゾル改,自,オリジナル,Weesol Kai,118
+92,ノルス・レイ,自,オリジナル,Nors Ray,117
+93,ガディフォール,中,オリジナル,Gadifal,236
+94,ゲシュペンスト（リアル）,自,オリジナル,Gespenst (Real),0
+95,ザク改,自,ガンダム0080,Zaku Kai,63
+96,ドム,敌,ガンダム0079,Dom,0
+97,エルメス,敌,ガンダム0079,Elmeth,0
+98,マラサイ,敌,Zガンダム,Marasai,0
+99,バーザム,敌,Zガンダム,Barzam,0
+100,ハンブラビ (MS),敌,Zガンダム,Hambrabi (MS),0
+101,ハンブラビ (MA),敌,Zガンダム,Hambrabi (MA),0
+102,アッシマー (MS),敌,Zガンダム,Asshimar (MS),0
+103,アッシマー (MA),敌,Zガンダム,Asshimar (MA),0
+104,サイコガンダム (MS),敌,Zガンダム,Psycho Gundam (MS),44
+105,サイコガンダム (MA),敌,Zガンダム,Psycho Gundam (MA),44
+106,バイアラン,自,Zガンダム,Byarlant,0
+107,ガブスレイ (MS),自,Zガンダム,Gabthley (MS),130
+108,ガブスレイ (MA),自,Zガンダム,Gabthley (MA),130
+109,バウンド・ドック (MS),敌,Zガンダム,Baund Doc (MS),0
+110,バウンド・ドック (MA),敌,Zガンダム,Baund Doc (MA),0
+111,サイコガンダム Mk-II (MS),敌,Zガンダム,Psycho Gundam Mk-II (MS),142
+112,サイコガンダム Mk-II (MA),敌,Zガンダム,Psycho Gundam Mk-II (MA),142
+113,百式,自,Zガンダム,Hyaku Shiki,32
+114,メタス (MS),自,Zガンダム,Methuss (MS),42
+115,メタス (MA),自,Zガンダム,Methuss (MA),42
+116,ブラウ・ブロ,敌,Zガンダム,Braw Bro,0
+117,ビグロ,敌,Zガンダム,Bigro,0
+118,ケンプファー,敌,ガンダム0080,Kampfer,0
+119,ヴァル・ヴァロ,敌,ガンダム0083,Val Walo,0
+120,ガーベラ・テトラ,敌,ガンダム0083,Gerbera Tetra,0
+121,ノイエ・ジール,敌,ガンダム0083,Neue Ziel,66
+122,キュベレイ,敌,Zガンダム,Qubeley,135
+123,キュベレイ Mk-II,自,ZZガンダム,Qubeley Mk-II,50
+124,ガルスJ,敌,ZZガンダム,Galluss-J,0
+125,ズサ,敌,ZZガンダム,Zssa,0
+126,ハンマ・ハンマ,敌,ZZガンダム,Hamma Hamma,0
+127,R・ジャジャ,敌,ZZガンダム,R-Jarja,0
+128,バウ (MS),敌,ZZガンダム,Bawoo (MS),0
+129,バウ (MA),敌,ZZガンダム,Bawoo (MA),0
+130,ドライセン,敌,ZZガンダム,Dreissen,0
+131,クイン・マンサ,敌,ZZガンダム,Quin Mantha,0
+132,ドーベンウルフ,敌,ZZガンダム,Doven Wolf,0
+133,ゲーマルク,敌,ZZガンダム,Geymalk,0
+134,ギラ・ドーガ（青）,敌,逆襲のシャア,Geara Doga (blue),0
+135,ギラ・ドーガ（赤）,敌,逆襲のシャア,Geara Doga (red),0
+136,ヤクト・ドーガ（青）,敌,逆襲のシャア,Jagd Doga (blue),0
+137,ヤクト・ドーガ（赤）,自,逆襲のシャア,Jagd Doga (red),58
+138,サザビー,自,逆襲のシャア,Sazabi,32
+139,α・アジール,敌,逆襲のシャア,Alpha Azieru,0
+140,ビギナ・ギナ,自,ガンダムF91,Vigna Ghina,64
+141,ベルガ・ギロス,敌,ガンダムF91,Berga Giros,0
+142,ラフレシア,敌,ガンダムF91,Rafflesia,157
+143,メカザウルス・サキ,敌,ゲッター,Mechasaurus Saki,0
+144,メカザウルス・バド,敌,ゲッター,Mechasaurus Bado,0
+145,メカザウルス・ザイ,敌,ゲッター,Mechasaurus Zai,0
+146,メカザウルス・ゼンII,敌,ゲッター,Mechasaurus Zen II,0
+147,メカザウルス・ダイ,敌,ゲッター,Mechasaurus Dai,0
+148,メカザウルス・シグ,敌,ゲッター,Mechasaurus Shigu,0
+149,機械獣ダブラスM2,敌,マジンガーZ,Mechanical Beast Doublas M2,0
+150,機械獣ガラダＫ７,敌,マジンガーZ,Mechanical Beast Garada K7,0
+151,機械獣トロスD7,敌,劇場版マジンガーZ,Mechanical Beast Toros D7,0
+152,ラインX1,敌,マジンガーZ,Rhine X1,0
+153,機械獣ジェノバM9,敌,マジンガーZ,Mechanical Beast Genova M9,0
+154,機械獣スパルタンK5,敌,マジンガーZ,Mechanical Beast Spartan K5,0
+155,機械獣アブドラU6,敌,マジンガーZ,Mechanical Beast Abdullah U6,0
+156,グール,敌,マジンガーZ,Ghoul,160
+157,ブード,敌,マジンガーZ,Bood,160
+158,戦闘獣グラトニオス,敌,グレートマジンガー,Warrior Beast Gratonios,0
+159,戦闘獣オベリウス,敌,グレートマジンガー,Warrior Beast Obelius,0
+160,ミニフォー,敌,グレンダイザー,MiniFO,0
+161,マザーバーン,敌,グレンダイザー,Mother Burn,0
+162,円盤獣ギルギル,敌,グレンダイザー,Saucer Beast Giruguru,0
+163,円盤獣ゴスゴス,敌,グレンダイザー,Saucer Beast Gosgos,0
+164,ベガ獣キングゴリ,敌,グレンダイザー,Vega Beast King Gori,0
+165,ピクドロン,敌,劇場版マジンガーZ,Pikadron,0
+166,ギルギルガン,敌,劇場版マジンガーZ,Gilgilgan,0
+167,メカギルギルガン,敌,オリジナル,Mecha Gilgilgan,0
+168,ドラゴノザウルス,敌,劇場版マジンガーZ,Dragonsaurus,0
+169,ヴァルシオン,敌,オリジナル,Valsione,0
+170,ドラムロ,敌,ダンバイン,Drumlo,109
+171,レプラカーン,敌,ダンバイン,Leprechaun,190
+172,ズワァース,敌,ダンバイン,Zwarth,191
+173,ビアレス,敌,ダンバイン,Vierres,181
+174,ライネック,自,ダンバイン,Wryneck,104
+175,バストール,自,ダンバイン,Bastole,193
+176,ブブリィ,敌,ダンバイン,Bubuly,187
+177,ガラバ,敌,ダンバイン,Gallaba,182
+178,ゲシュペンスト（スーパー）,自,オリジナル,Gespenst (Super),248
+179,グラン・ガラン,自,ダンバイン,Guran Garan,102
+180,ゴラオン,自,ダンバイン,Goraon,103
+181,ウィル・ウィプス,敌,ダンバイン,Will Wipps,183
+182,ゲア・ガリング,敌,ダンバイン,Gea Garing,185
+183,スプリガン,敌,ダンバイン,Sprigan,184
+184,ドローメ,敌,ライディーン,Drome,0
+185,ガンテ,敌,ライディーン,Gante,163
+186,化石獣バストドン,敌,ライディーン,Fossil Beast Bastodon,0
+187,化石獣ギルディーン,敌,ライディーン,Fossil beast Girudeen,0
+188,巨大シャーキン,敌,ライディーン,Giant Sharkin,163
+189,メカブースト・ドミラ,敌,ザンボット3,Mecha Boost Domira,0
+190,メカブースト・ガビタン（陸）,敌,ザンボット3,Mecha Boost Gabidan (Land),0
+191,メカブースト・ガビタン（空）,敌,ザンボット3,Mecha Boost Gabidan (Sky),0
+192,赤騎士デスカイン,敌,ザンボット3,Red Knight Deathcain,0
+193,青騎士ヘルダイン,敌,ザンボット3,Blue Knight Helldyne,0
+194,バンドック,敌,ザンボット3,Bandok,170
+195,メカ戦士ゾンネカイザー,敌,ダイモス,Mecha Warrior Sonnekaiser,174
+196,メカ戦士ギメリア,敌,ダイモス,Mecha Knight Gimeria,176
+197,メカ戦士ゴッドアーモン,敌,ダイモス,Mecha Warrior Goddoamon,174
+198,マグマ獣ガルムス,敌,コンバトラーV,Magma beast Galmus,0
+199,マグマ獣デモン,敌,コンバトラーV,Magma Beast Demon,0
+200,ビッグガルーダ,敌,コンバトラーV,Big Garuda,167
+201,ブンドル艦,敌,ゴーショーグン,Bundle ship,177
+202,カットナル艦,敌,ゴーショーグン,Cuttnal ship,178
+203,ケルナグール艦,敌,ゴーショーグン,Kernagul ship,179
+204,ゴーナグール,敌,ゴーショーグン,Gonagurl,0
+205,ザンジバル,敌,ガンダム0079,Zanzibar,0
+206,ミデア,盟,ガンダム0079,Medea,36
+207,コロンブス,没,ガンダム0079,Columbus,0
+208,パゾグ,没,ガンダム0079,Pazock,0
+209,ガウ,敌,ガンダム0079,Gaw,119
+210,ダブデ,敌,ガンダム0079,Dobday,133
+211,トロイホース,自,ガンダム0080,Trojan Horse,41
+212,グラーフ・ツェッペリン,没,ガンダム0080,Graf Zeppelin,0
+213,Sガンダム,自,ガンダムセンチネル,S Gundam,0
+214,Gクルーザー (S),自,ガンダムセンチネル,G Cruiser (S),0
+215,アレキサンドリア,没,Zガンダム,Alexandria,0
+216,ムサイ改,敌,ガンダム0080,Musai Kai,0
+217,アーガマ,自,Zガンダム,Argama,33
+218,アイリッシュ,没,Zガンダム,Irish,0
+219,ExSガンダム,自,ガンダムセンチネル,Ex-S Gundam,0
+220,Gクルーザー (EXS),自,ガンダムセンチネル,G Cruiser (EX-S),0
+221,ネェル・アーガマ,自,ZZガンダム,Nahel Argama,33
+222,エンドラ,敌,ZZガンダム,Endra,133
+223,サダラーン,中,ZZガンダム,Sadalahn,135
+224,レウルーラ,敌,逆襲のシャア,Rewloola,133
+225,ラー・カイラム,自,逆襲のシャア,	Ra Cailum,33
+226,ザムス・ガル,盟,ガンダムF91,Zamouth Garr,209
+227,ガロイカ,敌,オリジナル,Garoica,0
+228,カレイツェド,敌,オリジナル,Kaleitsed,0
+229,レストレイル,敌,オリジナル,Rest Rail,0
+230,グラシドゥ＝リュ,敌,オリジナル,Glassidou-Lu,0
+231,レストグランシュ,敌,オリジナル,Rest Granshu,0
+232,ゼラニオ,敌,オリジナル,Zeranio,219
+233,ゲイオス＝グルード,敌,オリジナル,Geios Glud,233
+234,ライグ＝ゲイオス,敌,オリジナル,Lige Geios,233
+235,バラン＝シュナイル,敌,オリジナル,Baran Schnile,234
+236,ゲシュペンスト Mk-II,盟,オリジナル,Gespenst Mk-II,27
+237,エルガイム,自,エルガイム,L-Gaim,210
+238,エルガイム Mk-II,自,エルガイム,L-Gaim Mk-II,210
+239,プローラー,自,エルガイム,Prowler,210
+240,ディザード,自,エルガイム,D-Sserd,213
+241,オージェ,敌,エルガイム,Auger,218
+242,オージ,敌,エルガイム,Auge,217
+243,アシュラテンプル,自,エルガイム,Ashura Temple,215
+244,ガルバリーテンプル,自,エルガイム,Calvary Temple,211
+245,バッシュ,敌,エルガイム,Bat-Shu,221
+246,アトール,敌,エルガイム,A Taul,0
+247,グルーン,敌,エルガイム,G Roon,0
+248,サロンズ,没,エルガイム,Salonz,0
+251,アローン,敌,エルガイム,Arorne,0
+252,真・ゲッター1,自,ゲッター,Shin Getter-1,9
+253,真・ゲッター2,自,ゲッター,Shin Getter-2,10
+254,真・ゲッター3,自,ゲッター,Shin Getter-3,11
+257,ガイラム,没,エルガイム,Gayrahm,0
+258,ガンダム,自,ガンダム0079,Gundam,80
+259,ガンダム Mk-II,自,Zガンダム,Gundam Mk-II,40
+260,Ｇディフェンサー,自,Zガンダム,G Defender,43
+261,スーパーガンダム,自,Zガンダム,Super Gundam,40
+262,Ξガンダム,没,閃光のハサウェイ,Xi Gundam,0
+263,旧ザク,敌,ガンダム0079,Old Zaku,0
+264,サーバイン,自,ダンバイン,Sirbine,98
+265,ズワウス,自,ダンバイン,Zwuath,98
+266,テキサスマック,自,ゲッター,Texas Mack,7
+267,アッザム,敌,ガンダム0079,Adzam,0
+268,ニセサイバスター,没,オリジナル,Fake Cybuster,0
+269,ナイチンゲール,没,逆襲のシャア,Nightingale,0
+270,ヌーベルディザード,自,エルガイム,Novel D-Sserd,211
+271,暗黒大将軍,敌,グレートマジンガー,Great General of Darkness,197
+272,ハーディアス,敌,グレートマジンガー,Hardias,198
+273,ドレイドウ,敌,グレートマジンガー,Draydou,199
+274,Ｚガンダム,自,Zガンダム,Z Gundam,81
+275,ウェイブライダー,自,Zガンダム,Wave Rider,81
+276,ＺＺガンダム,自,ZZガンダム,ZZ Gundam,82
+277,G-フォートレス,自,ZZガンダム,G-Fortress,82
+278,円盤獣ジンジン,敌,劇場版マジンガーZ,Saucer Beast Jinjin,0
+279,円盤獣デギデギ,敌,グレンダイザー,Saucer Beast Dekideki,0
+280,戦闘獣ダンテ,敌,劇場版マジンガーZ,Warrior Beast Dante,0
+281,戦闘獣ズガール,敌,グレートマジンガー,Warrior Beast Zugar,0
+282,獣魔将軍,敌,劇場版マジンガーZ,General Juuma,111
+283,グレイドン,敌,コンバトラーV,Graydon,167
+284,ガルンロール,敌,ダイモス,Guranrol,173
+285,グライア,敌,エルガイム,Greia,214
+286,メカザウルス・ズー,敌,ゲッター,Mechasaurus Zuu,0
+287,ボチューン,自,ダンバイン,Botune,100
+288,ドゴス・ギア,没,Zガンダム,Dogosse Giar,0
+289,アウドムラ,没,Zガンダム,Audhumla,0
+290,スードリ,敌,Zガンダム,Sudori,137
+291,GP-03ステイメン,自,ガンダム0083,GP-03 Staymen,84
+292,レプラカーン(ハイパー可),敌,ダンバイン,Leprechaun (Hyper Available),190
+293,ハイパーレプラカーン,敌,ダンバイン,Hyper Leprechaun,190
+294,ライネック(ハイパー可),敌,ダンバイン,Wryneck (Hyper Available),180
+295,ハイパーライネック,敌,ダンバイン,Hyper Wryneck,180
+296,ガラバ(ハイパー可),敌,ダンバイン,Gallaba (Hyper Available),182
+297,ハイパーガラバ,敌,ダンバイン,Hyper Gallaba,182
