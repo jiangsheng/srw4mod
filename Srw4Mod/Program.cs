@@ -91,6 +91,8 @@ namespace Srw4Mod
                 franchise.WritePilotRst(pilotsFolder,units, snesRom.Pilots, playstationRom.Pilots);
             }
             DumpData(playstationRom.Pilots);
+            DumpData(playstationRom.Units);
+            DumpData(playstationRom.Weapons);
         }
 
         private static List<Franchise> LoadFranchises()

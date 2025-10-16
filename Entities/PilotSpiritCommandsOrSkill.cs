@@ -22,35 +22,51 @@ namespace Entities
            
         public byte SpiritCommandsOrSkill {  get; set; }
         public int AcquireAtLevel{ get; set; }
+        public int BaseAddress { get; set; }
         static List<string> SpiritCommandNames = new List<string>();
-        public static string Format(byte spiritCommandsOrSkill)
+        public static string Format(int baseAddress,byte spiritCommandsOrSkill, byte previousSpiritCommandsOrSkill)
         {
             if (spiritCommandsOrSkill >= 0x01 && spiritCommandsOrSkill <= 0x1E)
             {
-                return SpiritCommandNames[spiritCommandsOrSkill];
+                return string.Format("{0:X}: {1}", baseAddress, SpiritCommandNames[spiritCommandsOrSkill]);
             }
             if (spiritCommandsOrSkill >= 0x20 && spiritCommandsOrSkill <= 0x27)
             {
-                return string.Format("シールド防御Ｌ{0}", spiritCommandsOrSkill - 0x20+1);
+                if (previousSpiritCommandsOrSkill >= 0x20 && previousSpiritCommandsOrSkill <= 0x27)
+                {
+                    return string.Format("{0:X}:Ｌ{1}", baseAddress, spiritCommandsOrSkill - 0x20 + 1);
+                }
+                else
+                {
+                    return string.Format("{0:X}:シールド防御Ｌ{1}", baseAddress, spiritCommandsOrSkill - 0x20 + 1);
+                }
             }
             if (spiritCommandsOrSkill >= 0x28 && spiritCommandsOrSkill <= 0x2F)
             {
-                return string.Format("切り払いＬ{0}", spiritCommandsOrSkill - 0x28+1);
+                if (previousSpiritCommandsOrSkill >= 0x28 && previousSpiritCommandsOrSkill <= 0x2f)
+                {
+                    return string.Format("{0:X}:Ｌ{1}", baseAddress, spiritCommandsOrSkill - 0x28 + 1);
+                }
+                else
+                    return string.Format("{0:X}:切り払いＬ{1}", baseAddress, spiritCommandsOrSkill - 0x28 + 1);
             }
+            string spiritCommandsOrSkillString = string.Empty;
             switch (spiritCommandsOrSkill)
             {
                 case 0x30:
-                    return "底力";
+                    spiritCommandsOrSkillString ="底力";break;
                 case 0x31:
-                    return "野性化";
+                    spiritCommandsOrSkillString = "野性化"; break;
                 case 0x32:
-                    return "聖戦士";
+                    spiritCommandsOrSkillString = "聖戦士"; break;
                 case 0x3E:
-                    return "ニュータイプ"; 
-                case 0x3F: 
-                    return "強化人間";
+                    spiritCommandsOrSkillString = "ニュータイプ"; break;
+                case 0x3F:
+                    spiritCommandsOrSkillString = "強化人間"; break;
+                default:
+                    spiritCommandsOrSkillString = spiritCommandsOrSkill.ToString(); break;
             }
-            return spiritCommandsOrSkill.ToString();
+            return string.Format("{0:X}: {1}", baseAddress, spiritCommandsOrSkillString);
         }
     }
 }

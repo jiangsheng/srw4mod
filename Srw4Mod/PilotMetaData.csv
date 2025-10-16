@@ -1,5 +1,5 @@
 ﻿Id,Name,Affiliation,FranchiseName,EnglishName
-1,チャム・ファウ,自,ダンバイン,Cham Fau
+1,チャム・ファウ,自,ダンバイン,Chum Huau
 2,ベル・アール,自,ダンバイン,Bell Earl
 3,エル・フィノ,自,ダンバイン,El Fino
 4,リリス・ファウ,自,エルガイム,Lilith Fau
@@ -97,17 +97,17 @@
 97,デューク・フリード,自,グレンダイザー,Duke Fleed
 98,マーベル・フローズン,自,ダンバイン,Marvel Frozen
 99,ひびき洸,自,ライディーン,Akira Hibiki
-100,ニー・ギブン,自,ダンバイン,Knee Given
+100,ニー・ギブン,自,ダンバイン,Nie Given
 101,キーン・キッス,自,ダンバイン,Keen Kiss
-102,シーラ・ラパーナ,自,ダンバイン,Sheila Rapana
-103,エレ・ハンム,自,ダンバイン,Ele Ham
-104,リムル・ルフト,自,ダンバイン,Rimuru Luft
+102,シーラ・ラパーナ,自,ダンバイン,Ciela Lapana
+103,エレ・ハンム,自,ダンバイン,Elle Hunm
+104,リムル・ルフト,自,ダンバイン,Riml Luft
 105,エイブ・タマリ,盟,ダンバイン,Abe Tamari
 106,破嵐万丈,自,ダイターン3,Banjo Haran
 107,竜崎一矢,自,ダイモス,Kazuya Ryuzaki
 108,連邦軍兵士,盟,オリジナル,EFGF soldier
 109,バイストンウェル兵,敌,オリジナル,Byston Well Soldier
-110,テュッティ・ノールバック,自,オリジナル,Tutti Norlbach
+110,テュッティ・ノールバック,自,オリジナル,Tutty Norback
 111,獣魔将軍,敌,劇場版マジンガーZ,Beast Demon General
 112,サウス・バニング,没,ガンダム0083,South Burning
 113,ホワン・ヤンロン,自,オリジナル,Huang Yanglong
@@ -121,10 +121,10 @@
 121,クラウレ・ハモン,敌,ガンダム0079,Claure Jamon
 122,クランプ,敌,ガンダム0079,Clamp
 123,ガイア,敌,ガンダム0079,Gaia
-124,マッシュ,敌,ガンダム0079,mash
+124,マッシュ,敌,ガンダム0079,Mash
 125,オルテガ,敌,ガンダム0079,Ortega
 126,シャリア・ブル,敌,ガンダム0079,Sharia Bull
-127,ララァ・スン,敌,ガンダム0079,Lala Sun
+127,ララァ・スン,没,ガンダム0079,Lala Sun
 128,ガディ・キンゼー,敌,Zガンダム,Gadi Kinsey
 129,カクリコン・カクーラー,敌,Zガンダム,Kacricon Cacooler
 130,サラ・ザビアロフ,自,Zガンダム,Sarah Zabiarov
@@ -177,20 +177,20 @@
 177,レオナルド・メディチ・ブンドル,敌,ゴーショーグン,Leonardo Medici Bundle
 178,スーグニ・カットナル,敌,ゴーショーグン,Suegni Cuttnal
 179,ヤッター・ラ・ケルナグール,敌,ゴーショーグン,Yatta-la Kernagul
-180,トッド・ギネス,敌,ダンバイン,Todd Guinness
-181,バーン・バニングス,敌,ダンバイン,Burn Bannings
+180,トッド・ギネス,敌,ダンバイン,Tod Guines
+181,バーン・バニングス,敌,ダンバイン,Bern Bunnings
 182,黒騎士,敌,ダンバイン,Black Knight
 183,ドレイク・ルフト,敌,ダンバイン,Drake Luft
 184,ショット・ウェポン,敌,ダンバイン,Shot Weapon
 185,ビショット・ハッタ,敌,ダンバイン,Bishot Hatta
-186,ルーザ・ルフト,敌,ダンバイン,Luza Luft
+186,ルーザ・ルフト,敌,ダンバイン,Louser Luft
 187,ミュージィ・ポー,敌,ダンバイン,Muzzy Poe
 188,ゼット・ライト（没）,没,ダンバイン,Zet Light
 189,トルストール・チェシレンコ,敌,ダンバイン,Tolstor Cheshilenko
-190,ジェリル・クチビ,敌,ダンバイン,Jeryl Kuchibi
+190,ジェリル・クチビ,敌,ダンバイン,Jeril Coochibi
 191,アレン・ブレディ,敌,ダンバイン,Allen Brady
 192,フェイ・チェンカ,敌,ダンバイン,Faye Chenka
-193,ガラリア・ニャムヒー,自,ダンバイン,Galaria Nyanhi
+193,ガラリア・ニャムヒー,自,ダンバイン,Garalia Nyamhee
 194,ガラミティ・マンガン,敌,ダンバイン,Galamity Manganese
 195,ダー,敌,ダンバイン,Dah
 196,ニェット,敌,ダンバイン,Nyett
@@ -207,7 +207,7 @@
 207,ポセイダル兵,敌,オリジナル,Poseidal soldier
 208,ポセイダル親衛隊兵,敌,オリジナル,Poseidal Imperial Guard
 209,エギーユ・デラーズ,敌,ガンダム0083,Aiguille Delaz
-210,ダバ・マイロード,自,エルガイム,Daba MyroadMyroad
+210,ダバ・マイロード,自,エルガイム,Daba Myroad
 211,ガウ・ハ・レッシィ,自,エルガイム,Gaw Ha Leccee
 212,ミラウー・キャオ,盟,エルガイム,Mirawoo Kyao
 213,ファンネリア・アム,自,エルガイム,Fanaria Amm

@@ -141,8 +141,9 @@ namespace Entities
             Unit unit = new Unit();
             unit.BaseOffset = baseOffset;
             int offset = baseOffset;
-
+            //offset 0
             byte iconId1 = playStationUnitData[offset++];
+            //offset 1
             byte fanchiseId = playStationUnitData[offset++];
 
             var iconId2 = fanchiseId & 0x01;
@@ -151,20 +152,25 @@ namespace Entities
 
             unit.Id = unitIndex;
             unit.FranchiseId = (byte)(fanchiseId & 0xFE);
-            unit.PortraitId = BitConverter.ToUInt16(playStationUnitData, offset);
+            //offset 2,3
+            unit.PortraitId = BitConverter.ToUInt16(playStationUnitData, offset);            
             offset += 2;
-
+            //offset 4
             unit.FixedSeatPilotId = playStationUnitData[offset++];
+            //offset 5
             unit.TransferFranchiseId = playStationUnitData[offset++];
+            //offset 6
             var sizeAndBGM = playStationUnitData[offset++];
 
             unit.UnitSize = (byte)(sizeAndBGM & 0x60);
             unit.UnitSizeBit = (byte)(sizeAndBGM & 0x10);
             unit.Discardable = (sizeAndBGM & 0x80) == 0;
             unit.BackgroundMusic = (byte)(sizeAndBGM & 0x0F);
+            //offset 7
             unit.TransformOrCombineType = playStationUnitData[offset++];
-
+            //offset 8
             var unitSpecialSkill1 = playStationUnitData[offset++];
+            //offset 9
             var unitSpecialSkill2 = playStationUnitData[offset++];
             unit.IsAggressive = (unitSpecialSkill1 & 0x1) != 0;
             unit.HasEnergyRecovery = (unitSpecialSkill1 & 0x02) != 0;
@@ -176,38 +182,51 @@ namespace Entities
             unit.HasAfterimage = (unitSpecialSkill2 & 0x10) != 0;
             unit.HasShield = (unitSpecialSkill2 & 0x20) != 0;
             unit.UnknownUnitSpecialSkill2 = (byte)(unitSpecialSkill1 & (~0x3F));
+            //offset A
             unit.Team = playStationUnitData[offset++];
+            //offset B,C,D,E
             offset += 4;
+            //offset F
             unit.Experience = playStationUnitData[offset++];
-            unit.Gold = BitConverter.ToUInt16(playStationUnitData, offset);
+            //offset 10,11
+            unit.Gold = BitConverter.ToUInt16(playStationUnitData, offset);            
             offset += 2;
+            //offset 12,13
             unit.RepairCost = BitConverter.ToUInt16(playStationUnitData, offset);
             offset += 2;
+            //offset 14
             unit.MoveRange = playStationUnitData[offset++];
             Debug.Assert(unit.MoveRange < 16);
+            //offset 15
             unit.MoveType = playStationUnitData[offset++];
             Debug.Assert(unit.MoveType < 0xD);
+            //offset 16
             var TerrainAdaption = playStationUnitData[offset++];
             unit.TerrainAdaptionAir = (byte)((TerrainAdaption & 0xF0) / 16);
             Debug.Assert(unit.TerrainAdaptionAir < 5);
             unit.TerrainAdaptionSea = (byte)(TerrainAdaption & 0x0F);
             Debug.Assert(unit.TerrainAdaptionSea < 5);
+            //offset 17
             TerrainAdaption = playStationUnitData[offset++];
             unit.TerrainAdaptionSpace = (byte)((TerrainAdaption & 0xF0) / 16);
             Debug.Assert(unit.TerrainAdaptionSpace < 5);
             unit.TerrainAdaptionLand = (byte)(TerrainAdaption & 0x0F);
             Debug.Assert(unit.TerrainAdaptionLand < 5);
-
+            //offset 18
             unit.Armor = playStationUnitData[offset++];
+            //offset 19
             unit.Mobility = playStationUnitData[offset++];
+            //offset 1A
             unit.Limit = playStationUnitData[offset++];
-
+            //offset 1B
             unit.Energy = playStationUnitData[offset++];
+            //offset 1C,1D
             unit.HP = BitConverter.ToUInt16(playStationUnitData, offset);
             offset += 2;
-
+            //offset 1E
             unit.WeaponCount = playStationUnitData[offset++];
             Debug.Assert(unit.WeaponCount < 32);
+            //offset 1F
             unit.AmmoWeaponCount = playStationUnitData[offset++];
             Debug.Assert(unit.AmmoWeaponCount < 32);
             Debug.Assert(unit.AmmoWeaponCount <= unit.WeaponCount);
@@ -257,99 +276,89 @@ namespace Entities
             StringBuilder stringBuilder
                 = new StringBuilder();
             stringBuilder.AppendFormat("Id: {0}", Id);
-            stringBuilder.AppendFormat(", Name: {0}", Name);
-            stringBuilder.AppendFormat(", BaseOffset: {0:X}", BaseOffset);
-            stringBuilder.AppendFormat(", TransformOrCombineTypeAddress: {0:X}", BaseOffset + 7);
-            stringBuilder.AppendFormat(", WeaponCountAddress: {0:X}", BaseOffset + 0x1E);
-            stringBuilder.AppendFormat(", AmmoWeaponCountAddress: {0:X}", BaseOffset + 0x1F);
-            stringBuilder.AppendFormat(", TerrainAdaption: {0:X}", BaseOffset + 0x16);
-            stringBuilder.AppendFormat(", FirstWeaponAddress: {0:X}", BaseOffset + 0x20);
-
-            stringBuilder.AppendFormat(", Affiliation: {0:X}", Affiliation);
-            stringBuilder.AppendFormat(", FranchiseName: {0:X}", FranchiseName);
-            stringBuilder.AppendFormat(", IconId: {0:X}", IconId);
-            stringBuilder.AppendFormat(", FranchiseId:{0:X} ({1})", FranchiseId, Franchise.FormatFranchise(FranchiseId));
-            stringBuilder.AppendFormat("\r\n, PortraitId: {0:X}", PortraitId);
-            stringBuilder.AppendFormat(", FixedSeatPilotId: {0:X}", FixedSeatPilotId);
-            stringBuilder.AppendFormat(", TransferFranchiseId: {0:X}", TransferFranchiseId);
-            stringBuilder.AppendFormat(", Discardable: {0}", Discardable);
-            stringBuilder.AppendFormat(", UnitSize:{0:X} ({1})", UnitSize, FormatUnitSize(UnitSize));
-            if (UnitSizeBit != 0)
+            stringBuilder.AppendFormat("\t名: {0}\t({1})", Name, EnglishName);
+            stringBuilder.AppendFormat("\t属: {0}", Affiliation);
+            stringBuilder.AppendFormat("\t作: {0}", FranchiseName);
+            stringBuilder.AppendFormat("\t图标: {0:X}:{1:X}:", BaseOffset, IconId);
+            stringBuilder.AppendFormat("\t游戏作:{0:X}:{1:X} ({2})", BaseOffset+1, FranchiseId, Franchise.FormatFranchise(FranchiseId));
+            stringBuilder.AppendFormat("\t图像: {0:X}:{1:X}", BaseOffset + 2, PortraitId);
+            stringBuilder.AppendFormat("\t固定驾驶员: {0:X}:{1:X}", BaseOffset + 4, FixedSeatPilotId);
+            stringBuilder.AppendFormat("\t换乘组: {0:X}:{1:X}", BaseOffset + 5, TransferFranchiseId);
+            stringBuilder.AppendFormat("\t大小:{0:X}:{1:X} ({2})", BaseOffset + 6, UnitSize, FormatUnitSize(UnitSize));
+            stringBuilder.AppendFormat("\t可废弃: {0}", Discardable?"是":"否");
+            stringBuilder.AppendFormat("\tBGM: {0:X}", BackgroundMusic);
+            stringBuilder.AppendFormat("\r\n合体分离变形种类: {0:X}:{1:X}", BaseOffset + 7, TransformOrCombineType);
+            stringBuilder.AppendFormat("\t技能1: {0:X}", BaseOffset + 8);
+            if (!IsAggressive)
             {
-                //stringBuilder.AppendFormat(", Unknown UnitSize Bit:{0:X}", UnitSizeBit);
+                stringBuilder.Append("\t不攻击");
             }
-            stringBuilder.AppendFormat(", BackgroundMusic: {0:X}", BackgroundMusic);
-            stringBuilder.AppendFormat(", TransformOrCombineType: {0:X}", TransformOrCombineType);
-            stringBuilder.Append("\r\n");
             if (HasSword)
             {
-                stringBuilder.Append("剣装備");
+                stringBuilder.Append("\t剣装備");
             }
             if (HasEnergyRecovery)
             {
-                stringBuilder.Append(", EN恢復");
+                stringBuilder.Append("\tEN恢復");
             }
             switch (HPRecoveryType)
             {
                 case 0x04:
-                    stringBuilder.Append(", HP恢復(小)"); break;
+                    stringBuilder.Append("\tHP恢復(小)"); break;
                 case 0x08:
-                    stringBuilder.Append(", HP恢復(大)"); break;
+                    stringBuilder.Append("\tHP恢復(大)"); break;
             }
 
             if (RageAndDetonateImmune)
             {
-                stringBuilder.Append(",激怒/自爆/てかげん無効");
+                stringBuilder.Append("\t激怒/自爆/てかげん無効");
             }
-
+            stringBuilder.AppendFormat("\t技能2: {0:X}", BaseOffset + 9);
             switch (BeamCoatType)
             {
-                case 0x02: stringBuilder.Append(", ビームコート"); break;
-                case 0x04: stringBuilder.Append(", Iフィールド"); break;
-                case 0x06: stringBuilder.Append(", オーラバリア"); break;
-                case 0x08: stringBuilder.Append(", ビームバリア"); break;
+                case 0x02: stringBuilder.Append("\tビームコート"); break;
+                case 0x04: stringBuilder.Append("\t Iフィールド"); break;
+                case 0x06: stringBuilder.Append("\tオーラバリア"); break;
+                case 0x08: stringBuilder.Append("\tビームバリア"); break;
             }
             if (HasAfterimage)
             {
-                stringBuilder.Append(", 分身");
+                stringBuilder.Append("\t分身");
             }
             if (HasShield)
             {
-                stringBuilder.Append(", 盾装備");
-            }
-            if (!IsAggressive)
-            {
-                stringBuilder.Append(", 不攻击");
+                stringBuilder.Append("\t盾装備");
             }
             if (UnknownUnitSpecialSkill2 != 0)
             {
-                //stringBuilder.AppendFormat(", Unknown unitSpecialSkill2 {0:X} ", FormatHex(UnknownUnitSpecialSkill2));
+                stringBuilder.AppendFormat("\t未知技能 {0:X} ", UnknownUnitSpecialSkill2);
             }
-            stringBuilder.AppendFormat(", Team: {0:X}", Team);
-            stringBuilder.AppendFormat(", Experience: {0:X}", Experience);
-            stringBuilder.AppendFormat(", Gold: {0:X}", Gold);
-            stringBuilder.AppendFormat(", RepairCost: {0:X}", RepairCost);
-
-            stringBuilder.AppendFormat(", MoveRange: {0:X}", MoveRange);
-            stringBuilder.AppendFormat(", MoveType: {0:X}", MoveType);
-
-            stringBuilder.AppendFormat(", TerrainAdaption: {0}", TerrainAdaptionHelper.FormatTerrainAdaption(
+            stringBuilder.AppendFormat("\t分队: {0:X}:{1:X}", BaseOffset + 0xa,Team);
+            stringBuilder.AppendFormat("\t经验: {0:X}:{1}", BaseOffset + 0xf, Experience);
+            stringBuilder.AppendFormat("\t获得资金: {0:X}:{1}", BaseOffset + 0x10, Gold);
+            stringBuilder.AppendFormat("\t修理费 RepairCost: {0:X}:{1}", BaseOffset + 0x12, RepairCost);
+            stringBuilder.AppendFormat("\r\n移动力: {0:X}:{1}", BaseOffset + 0x14, MoveRange);
+            stringBuilder.AppendFormat("\t移动类型: {0:X}:{1:X}", BaseOffset + 0x15, MoveType);
+            stringBuilder.AppendFormat("\t地形适应: {0:X}:{1}(空{2}陆{3}海{4}宇{5})", BaseOffset + 0x16, Convert.ToHexString(
                 new byte[] {
-                TerrainAdaptionAir,TerrainAdaptionLand, TerrainAdaptionSea, TerrainAdaptionSpace}));
+                (byte)(TerrainAdaptionAir*16+TerrainAdaptionLand), (byte)(TerrainAdaptionSea*16+TerrainAdaptionSpace)})
+                , TerrainAdaptionHelper.FormatTerrainAdaption(TerrainAdaptionAir)
+                , TerrainAdaptionHelper.FormatTerrainAdaption(TerrainAdaptionLand)
+                , TerrainAdaptionHelper.FormatTerrainAdaption(TerrainAdaptionSea)
+                , TerrainAdaptionHelper.FormatTerrainAdaption(TerrainAdaptionSpace));
 
-            stringBuilder.AppendFormat("\r\n, Armor: {0}", Armor * 10);
-            stringBuilder.AppendFormat(", Mobility: {0}", Mobility);
-            stringBuilder.AppendFormat(", Limit: {0}", Limit);
-
-            stringBuilder.AppendFormat(", Energy: {0}", Energy);
-            stringBuilder.AppendFormat(", HP: {0}", HP);
-
-            stringBuilder.AppendFormat(", WeaponCount: {0:X}", WeaponCount);
-            stringBuilder.AppendFormat(", AmmoWeaponCount: {0:X}", AmmoWeaponCount);
+            stringBuilder.AppendFormat("\t甲: {0:X}:{1}", BaseOffset + 0x18, Armor * 10);
+            stringBuilder.AppendFormat("\t运: {0:X}:{1}", BaseOffset + 0x19, Mobility);
+            stringBuilder.AppendFormat("\t限: {0:X}:{1}", BaseOffset + 0x1a, Limit);
+            stringBuilder.AppendFormat("\t能: {0:X}:{1}", BaseOffset + 0x1b, Energy);
+            stringBuilder.AppendFormat("\tHP: {0:X}:{1}", BaseOffset + 0x1c, HP);
+            stringBuilder.AppendFormat("\t武器数: {0:X}:{1}", BaseOffset + 0x1e, WeaponCount);
+            stringBuilder.AppendFormat("\t弹药槽数: {0:X}:{1}", BaseOffset + 0x1f, AmmoWeaponCount);
+            stringBuilder.AppendFormat("\t首武器地址: {0:X}", BaseOffset + 0x20);
 
             if (WeaponCount > 0 && Weapons != null)
             {
-                stringBuilder.Append("\r\nWeapons:\r\n");
+                stringBuilder.Append("\r\n");
                 int weaponOrder = 1;
                 foreach (var weapon in Weapons)
                 {
@@ -737,22 +746,22 @@ namespace Entities
                 }
                 stringBuilder.AppendLine();
             }
-            Debug.Assert(snesUnit.HasAfterimage == playstationUnit.HasAfterimage);
+            //Debug.Assert(snesUnit.HasAfterimage == playstationUnit.HasAfterimage);
             if (snesUnit.HasAfterimage)
             {
                 stringBuilder.AppendLine("        | 分身");
             }
-            Debug.Assert(snesUnit.HasShield == playstationUnit.HasShield);
+            //Debug.Assert(snesUnit.HasShield == playstationUnit.HasShield);
             if (snesUnit.HasShield)
             {
                 stringBuilder.AppendLine("        | 盾装備");
             }
-            Debug.Assert(snesUnit.HasSword == playstationUnit.HasSword);
+            //Debug.Assert(snesUnit.HasSword == playstationUnit.HasSword);
             if (snesUnit.HasSword || playstationUnit.HasSword)
             {
                 stringBuilder.AppendLine("        | 剣装備");
             }
-            Debug.Assert(snesUnit.HasEnergyRecovery == playstationUnit.HasEnergyRecovery);
+            //Debug.Assert(snesUnit.HasEnergyRecovery == playstationUnit.HasEnergyRecovery);
             if (snesUnit.HasEnergyRecovery)
             {
                 switch (snesUnit.HPRecoveryType)
@@ -765,12 +774,12 @@ namespace Entities
                         break;
                 }
             }
-            Debug.Assert(snesUnit.RageAndDetonateImmune == playstationUnit.RageAndDetonateImmune);
+            //Debug.Assert(snesUnit.RageAndDetonateImmune == playstationUnit.RageAndDetonateImmune);
             if (snesUnit.RageAndDetonateImmune)
             {
                 stringBuilder.AppendLine("        | 激怒/自爆/てかげん無効");
             }
-            Debug.Assert(snesUnit.BeamCoatType == playstationUnit.BeamCoatType);
+           // Debug.Assert(snesUnit.BeamCoatType == playstationUnit.BeamCoatType);
             switch (snesUnit.BeamCoatType)
             {
                 case 0x02:

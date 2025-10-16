@@ -14,7 +14,7 @@ namespace Entities
                = new StringBuilder();
             foreach (var item in TerrainAdaptions)
             {
-                stringBuilder.Append(item);
+                stringBuilder.Append(FormatTerrainAdaption(item));
             }
             return stringBuilder.ToString();
         }

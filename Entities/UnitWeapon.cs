@@ -27,36 +27,36 @@ namespace Entities
             StringBuilder stringBuilder
                 = new StringBuilder();
 
-            stringBuilder.AppendFormat(" BaseOffset: {0:X}", BaseOffset);
-            stringBuilder.AppendFormat(" Name: {0}", Name);
+            stringBuilder.AppendFormat("地址: {0:X}", BaseOffset);
+            stringBuilder.AppendFormat("\t名: {0}", Name);
             if ((IsMap))
             {
                 stringBuilder.AppendFormat(" (Map)");
             }
-            stringBuilder.AppendFormat(" Damage: {0}", Damage);
-            stringBuilder.AppendFormat(" Range: {0}", Range);
+            stringBuilder.AppendFormat("\t伤害: {0}", Damage);
+            stringBuilder.AppendFormat("\t程: {0}", Range);
 
             if (Ammo > 0)
             {
-                stringBuilder.AppendFormat(" Ammo: {0}", Ammo);
+                stringBuilder.AppendFormat("\t弹数: {0}", Ammo);
             }
 
             if (En > 0)
             {
-                stringBuilder.AppendFormat(" En: {0}", En);
+                stringBuilder.AppendFormat("\t耗能: {0}", En);
             }
-            stringBuilder.AppendFormat(" WeaponIndex: {0:X}", WeaponIndex);
+            stringBuilder.AppendFormat("\t武器代码: {0:X}", WeaponIndex);
             if (AmmoSlot != 0)
-                stringBuilder.AppendFormat(" AmmoSlot: {0:X}", AmmoSlot);
-            stringBuilder.AppendFormat(" Order: {0:X}", Order);
+                stringBuilder.AppendFormat("\t弹药槽: {0:X}", AmmoSlot);
+            stringBuilder.AppendFormat("\t序号: {0:X}", Order);
 
             if (IsConditional)
             {
-                stringBuilder.AppendFormat(" AvailableAtStage: {0:X}", AvailableAtStage);
+                stringBuilder.AppendFormat("\t启用关卡: {0:X}", AvailableAtStage);
             }
             if (!string.IsNullOrEmpty(FirstOwner))
             {
-                stringBuilder.AppendFormat(" FirstOwner: {0}", FirstOwner);
+                stringBuilder.AppendFormat("\t首装备: {0}", FirstOwner);
             }
             
             return stringBuilder.ToString();

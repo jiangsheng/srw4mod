@@ -10,7 +10,7 @@ namespace Entities
 {
     public class Weapon : IRstFormatter, INamedItem
     {
-        public static int BaseOffset { get; set; }
+        public int BaseOffset { get; set; }
         public int Id { get; set; }
         public byte TypeCode1 { get; set; }
         public byte TypeCode2 { get; set; }
@@ -75,13 +75,14 @@ namespace Entities
                     ;
         }
 
-        private static Weapon ParseWeapon(byte[] playStationWeaponData, int baseOffset, int unitIndex)
+        private static Weapon ParseWeapon(byte[] weaponData, int baseOffset, int unitIndex)
         {
             int offset = baseOffset;
             Weapon weapon = new Weapon();
-            Weapon.BaseOffset = baseOffset;
+            weapon.BaseOffset = baseOffset;
             weapon.Id = unitIndex;
-            weapon.TypeCode1 = playStationWeaponData[offset++];
+            //offset 0
+            weapon.TypeCode1 = weaponData[offset++];
             switch (weapon.TypeCode1)
             {
                 case 0xDE:
@@ -99,34 +100,46 @@ namespace Entities
                         weapon.IsMelee = (weapon.TypeCode1 & 0x40) != 0;
                     break;
             }
-            weapon.TypeCode2 = playStationWeaponData[offset++];
+            //offset 1
+            weapon.TypeCode2 = weaponData[offset++];
             weapon.IsDeflectable = (weapon.TypeCode2 & 0x20) != 0;
             weapon.IsBeam = (weapon.TypeCode2 & 0x80) != 0;
             weapon.IsPortable = (weapon.TypeCode2 & 0x40) == 0;
             weapon.TypeCode2LowerHalf = (byte)(weapon.TypeCode2 & 0x0f);
-            weapon.PilotQuote = playStationWeaponData[offset++];
-            weapon.BattleAnimation = BitConverter.ToUInt16(playStationWeaponData, offset);
+            //offset 2
+            weapon.PilotQuote = weaponData[offset++];
+            //offset 3,4
+            weapon.BattleAnimation = BitConverter.ToUInt16(weaponData, offset);
             offset += 2;
-            weapon.Damage = BitConverter.ToUInt16(playStationWeaponData, offset);
+            //offset 5,6
+            weapon.Damage = BitConverter.ToUInt16(weaponData, offset);
             Debug.Assert(weapon.Damage <= 18000);
             offset += 2;
-
-            weapon.AccuracyBonus = (sbyte)playStationWeaponData[offset++];
-            weapon.CriticalHitRateBonusAndUpgradeCostType = playStationWeaponData[offset++];
+            //offset 7
+            weapon.AccuracyBonus = (sbyte)weaponData[offset++];
+            //offset 8
+            weapon.CriticalHitRateBonusAndUpgradeCostType = weaponData[offset++];
             weapon.CriticalHitRateBonus = (sbyte)(((weapon.CriticalHitRateBonusAndUpgradeCostType & 0xF0) / 16) * 10 - 10);
             weapon.UpgradeCostType = (byte)(weapon.CriticalHitRateBonusAndUpgradeCostType & 0x0F);
-            weapon.MinRange = playStationWeaponData[offset++];
+            //offset 9
+            weapon.MinRange = weaponData[offset++];
             Debug.Assert(weapon.MinRange < 15);
-            weapon.MaxRange = playStationWeaponData[offset++];
+            //offset a
+            weapon.MaxRange = weaponData[offset++];
             Debug.Assert(weapon.MaxRange < 15);
-            weapon.TerrainAdaption = playStationWeaponData[offset++];
-            weapon.MaxAmmo = playStationWeaponData[offset++];
+            //offset b
+            weapon.TerrainAdaption = weaponData[offset++];
+            //offset c
+            weapon.MaxAmmo = weaponData[offset++];
             Debug.Assert(weapon.MaxAmmo <= 50);
-            weapon.EnergyCost = playStationWeaponData[offset++];
+            //offset d
+            weapon.EnergyCost = weaponData[offset++];
             Debug.Assert(weapon.EnergyCost <= 150);
-            weapon.RequiredWill = playStationWeaponData[offset++];
+            //offset e
+            weapon.RequiredWill = weaponData[offset++];
             Debug.Assert(weapon.RequiredWill <= 150);
-            weapon.RequiredSkill = playStationWeaponData[offset++];
+            //offset f
+            weapon.RequiredSkill = weaponData[offset++];
             Debug.Assert(weapon.RequiredSkill < 0x40);
             return weapon;
         }
@@ -163,7 +176,7 @@ namespace Entities
             StringBuilder stringBuilder
                 = new StringBuilder();
             stringBuilder.AppendFormat("Id: {0:X}", Id);
-            stringBuilder.AppendFormat(", Name: {0}", Name);
+            stringBuilder.AppendFormat(", 名: {0}", Name);
             if (IsMelee)
                 stringBuilder.Append("🤛");
             if (IsMap)
@@ -178,29 +191,30 @@ namespace Entities
                 stringBuilder.Append("⚔");
             if (IsBeam)
                 stringBuilder.Append("Ⓑ");
-            stringBuilder.AppendFormat(", BaseOffset: {0:X}", BaseOffset);
-            stringBuilder.AppendFormat(", TypeCode: {0:X2}{1:X2}", TypeCode1, TypeCode2);
-            stringBuilder.AppendFormat(", TypeCode2LowerHalf: {0:X}", TypeCode2LowerHalf);
-            stringBuilder.AppendFormat(", Quote: {0}", FormatPilotQuote(PilotQuote));
-            stringBuilder.AppendFormat(", Animation: {0}", BattleAnimation);
-            stringBuilder.AppendFormat(", Damage: {0}", Damage);
-            stringBuilder.AppendFormat(", Range: {0}~{1}", MinRange, MaxRange);
-            stringBuilder.AppendFormat(", AccuracyBonus: {0}", AccuracyBonus);
-            stringBuilder.AppendFormat(", Terrain: {0}", FormatTerrainAdaption(TerrainAdaption));
-            stringBuilder.AppendFormat(", CriticalHitRateBonus: {0}", CriticalHitRateBonus);
+            stringBuilder.AppendFormat(", 地址: {0:X}", BaseOffset);
+            //stringBuilder.AppendFormat(", 类型1: {0:X2}{1:X2}", TypeCode1, TypeCode2);
+            //stringBuilder.AppendFormat(", 类型2未知字节: {0:X}", TypeCode2LowerHalf);
+            stringBuilder.AppendFormat(", 台词: {0:X}:{1:X}", BaseOffset + 2, FormatPilotQuote(PilotQuote));
+            stringBuilder.AppendFormat(", 动画: {0:X}:{1:X}", BaseOffset + 3, BattleAnimation);
+            stringBuilder.AppendFormat(", 伤害: {0:X}:{1}", BaseOffset + 5, Damage);
+            stringBuilder.AppendFormat(", 程: {0}~{1}", MinRange, MaxRange);
+            stringBuilder.AppendFormat(", 命中补正: {0}", AccuracyBonus);
+            stringBuilder.AppendFormat(", 改造价格类型: {0}", UpgradeCostType);
+            stringBuilder.AppendFormat(", 地形适应: {0:X}:{1}", BaseOffset + 0xb, FormatTerrainAdaption(TerrainAdaption));
+            stringBuilder.AppendFormat(", 暴击补正: {0}", CriticalHitRateBonus);
 
             if (MaxAmmo > 0)
-                stringBuilder.AppendFormat(", Ammo: {0}", MaxAmmo);
+                stringBuilder.AppendFormat("\t弹数: {0:X}:{1}", BaseOffset + 0xc, MaxAmmo);
             if (EnergyCost > 0)
-                stringBuilder.AppendFormat(", Energy: {0}", EnergyCost);
+                stringBuilder.AppendFormat("\t耗能: {0:X}:{1}", BaseOffset + 0xd, EnergyCost);
             if (RequiredWill > 0)
-                stringBuilder.AppendFormat(", Will: {0}", RequiredWill);
+                stringBuilder.AppendFormat("\t必要气力: {0:X}:{1}", BaseOffset + 0xe, RequiredWill);
             if (RequiredSkill > 0)
-                stringBuilder.AppendFormat(", Skill: {0:X}", RequiredSkill);
-            stringBuilder.AppendFormat(", UpgradeCostType: {0}", UpgradeCostType);
+                stringBuilder.AppendFormat("\t必要技能: {0:X}:{1}:{0:X}", BaseOffset + 0xf, RequiredSkill);
+            
 
             if (HasAssignedOwner)
-                stringBuilder.AppendFormat(", FirstOwner: {0:X}", FirstOwner);
+                stringBuilder.AppendFormat("\t首装备: {0:X}", FirstOwner);
             return stringBuilder.ToString();
         }
 
@@ -246,7 +260,7 @@ namespace Entities
             else
                 row.AppendLine("     - ");
             if(RequiredSkill>0)
-                row.AppendLine(string.Format("     - {0}", PilotSpiritCommandsOrSkill.Format(RequiredSkill)));
+                row.AppendLine(string.Format("     - {0}", PilotSpiritCommandsOrSkill.Format(0,RequiredSkill,0)));
             else
                 row.AppendLine("     - ");
             row.AppendLine(string.Format("     - {0:X}", UpgradeCostType));

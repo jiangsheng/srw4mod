@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CsvHelper.Configuration.Attributes;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -44,6 +45,8 @@ namespace Entities
         public byte StartSP { get; private set; }
         public List<PilotSpiritCommandsOrSkill>? SpiritCommandsOrSkills { get; set; }
 
+        [Ignore]
+        public bool IsPlayStation { get; set; }
         public static List<Pilot>? Parse(byte[] pilotData, int headerOffset, int dataOffset, List<PilotMetaData> pilotMetaData, bool isPlayStation)
         {
             var magicMark = BitConverter.ToUInt16(pilotData, headerOffset);
@@ -87,10 +90,13 @@ namespace Entities
         private static Pilot ParsePilot(byte[] playStationUnitData, int baseOffset, int pilotIndex, bool isPlayStation)
         {
             Pilot pilot = new Pilot();
+            pilot.IsPlayStation=isPlayStation;
             pilot.Id = pilotIndex;
             pilot.BaseOffset = baseOffset;
             int offset = baseOffset;
+            //offset 0
             pilot.FaceId = playStationUnitData[offset++];
+            //offset 1
             var inGameFranchise = playStationUnitData[offset++];
             pilot.FranchiseId = (byte)(inGameFranchise & 0xFE);
             if ((inGameFranchise & 0x01) != 0)
@@ -99,61 +105,76 @@ namespace Entities
             }
             if (isPlayStation)
             {
+                //offset 2
                 pilot.PlayStationFranchise2 = playStationUnitData[offset++];
             }
+            //offset 2/3
             byte transferFranchiseAndPersonality = playStationUnitData[offset++];
             pilot.TransferFranchiseId = (byte)(transferFranchiseAndPersonality & 0xF);
             pilot.IsFemale = (transferFranchiseAndPersonality & 0x80) != 0;
             pilot.IsFixedSeat = (transferFranchiseAndPersonality & 0x40) != 0;
             pilot.Personality = (byte)((transferFranchiseAndPersonality & 0x30) / 16);
+            //offset 3/4
             pilot.ExperienceAward = playStationUnitData[offset++];
+            //offset 4/5
             byte growthType = playStationUnitData[offset++];
             pilot.AccuracyGrowthType = (byte)((growthType & 0xF0) / 16);
             pilot.SkillGrowthType = (byte)(growthType & 0xF);
             Debug.Assert(pilot.SkillGrowthType < 4);
             Debug.Assert(pilot.AccuracyGrowthType < 4);
-
+            //offset 5/6
             growthType = playStationUnitData[offset++];
             pilot.NearGrowthType = (byte)((growthType & 0xF0) / 16);
             pilot.FarGrowthType = (byte)(growthType & 0xF);
-            Debug.Assert(pilot.NearGrowthType <= 4);
-            Debug.Assert(pilot.FarGrowthType <= 4);
-
+            //Debug.Assert(pilot.NearGrowthType <= 4);
+            //Debug.Assert(pilot.FarGrowthType <= 4);
+            //offset 6/7
             pilot.SPGrowthType = (byte)((playStationUnitData[offset++]) / 16);
             Debug.Assert(pilot.SPGrowthType < 4);
+            //offset 7/8
             growthType = playStationUnitData[offset++];
             pilot.EvasionGrowthType = (byte)((growthType & 0xF0) / 16);
             Debug.Assert(pilot.EvasionGrowthType < 5);
             pilot.IntuitionGrowthType = (byte)(growthType & 0xF);
             Debug.Assert(pilot.IntuitionGrowthType < 3);
+            //offset 8/9
             var TerrainAdaption = playStationUnitData[offset++];
             pilot.TerrainAdaptionAir = (byte)((TerrainAdaption & 0xF0) / 16);
             pilot.TerrainAdaptionSea = (byte)(TerrainAdaption & 0x0F);
             Debug.Assert(pilot.TerrainAdaptionAir < 5);
             Debug.Assert(pilot.TerrainAdaptionSea < 5);
-
+            //offset 9/a
             TerrainAdaption = playStationUnitData[offset++];
             pilot.TerrainAdaptionSpace = (byte)((TerrainAdaption & 0xF0) / 16);
             pilot.TerrainAdaptionLand = (byte)(TerrainAdaption & 0x0F);
             Debug.Assert(pilot.TerrainAdaptionSpace < 5);
             Debug.Assert(pilot.TerrainAdaptionLand < 5);
+            //offset a/b
             pilot.NearAttack = playStationUnitData[offset++];
+            //offset b/c
             pilot.FarAttack = playStationUnitData[offset++];
+            //offset c/d
             pilot.Accuracy = playStationUnitData[offset++];
+            //offset d/e
             pilot.Skill = playStationUnitData[offset++];
+            //offset e/f
             pilot.Evasion = playStationUnitData[offset++];
+            //offset f/10
             pilot.Intuition = playStationUnitData[offset++];
+            //offset 10/11
             pilot.StartSP = playStationUnitData[offset++];
             pilot.SpiritCommandsOrSkills = new List<PilotSpiritCommandsOrSkill>();
             ushort testData = BitConverter.ToUInt16(playStationUnitData, offset);
             while (testData != 0)
             {
+                var baseAddress = offset;
                 var pilotSpiritCommandsOrSkill = playStationUnitData[offset++];
                 var acquireAtLevel = playStationUnitData[offset++];
                 Debug.Assert(pilotSpiritCommandsOrSkill < 0x40);
-                Debug.Assert(acquireAtLevel < 64);
+                //Debug.Assert(acquireAtLevel < 64);
                 PilotSpiritCommandsOrSkill spiritCommandsOrSkill = new PilotSpiritCommandsOrSkill
                 {
+                    BaseAddress = baseAddress,
                     AcquireAtLevel = acquireAtLevel,
                     SpiritCommandsOrSkill = pilotSpiritCommandsOrSkill
                 };
@@ -167,45 +188,41 @@ namespace Entities
         {
             StringBuilder stringBuilder
                 = new StringBuilder();
-            stringBuilder.AppendFormat("Id: {0}", Id);
-            stringBuilder.AppendFormat(", 名: {0}", Name);
-            stringBuilder.AppendFormat(", BaseOffset: {0:X}", BaseOffset);
-            stringBuilder.AppendFormat(", SpiritCommandOffset: {0:X}", BaseOffset + 0x12);
-            stringBuilder.AppendFormat(", TerrainAdaption: {0:X}", BaseOffset + 0x09);
-            stringBuilder.AppendFormat(", 属: {0:X}", Affiliation);
-            stringBuilder.AppendFormat(", 作: {0:X}", FranchiseName);
-            stringBuilder.AppendFormat(", 颜: {0:X}", FaceId);
+            stringBuilder.AppendFormat(" Id: {0:X}", Id);
+            stringBuilder.AppendFormat("\t 名: {0}\t ({1})", Name, EnglishName);
+            stringBuilder.AppendFormat("\t 属: {0:X}", Affiliation);
+            stringBuilder.AppendFormat("\t 作: {0:X}", FranchiseName);
+            stringBuilder.AppendFormat("\t 颜: {0:X}:{1}", BaseOffset, FaceId);
+            stringBuilder.AppendFormat("\t 游戏作: {0:X}:{1:X}({2})", BaseOffset + 0x01, FranchiseId, Franchise.FormatFranchise(FranchiseId));
             if (PlayStationFranchise2 != 0)
-                stringBuilder.AppendFormat(", PlayStationFranchise2: {0}", Franchise.FormatPlayStationFranchise2(PlayStationFranchise2));
-            stringBuilder.AppendFormat(", 游戏作: {0:X}({1})", FranchiseId, Franchise.FormatFranchise(FranchiseId));
-            stringBuilder.AppendFormat(", 换乘: {0:X}", TransferFranchiseId);
+                stringBuilder.AppendFormat("\t PS游戏作: {0:X}:{1}", BaseOffset + 0x02, Franchise.FormatPlayStationFranchise2(PlayStationFranchise2));
+            stringBuilder.AppendFormat("\t 换乘: {0:X}:{1:X}", BaseOffset + (this.IsPlayStation ? 3 : 2), TransferFranchiseId);
             if (IsFemale)
-                stringBuilder.Append(", 女");
+                stringBuilder.Append("\t 女");
             if (IsFixedSeat)
-                stringBuilder.Append(", 換乘不可");
-            stringBuilder.AppendFormat(", Personality: {0}", FormatPersonality(Personality));
-            stringBuilder.AppendFormat(", ExperienceAward: {0}\r\n", ExperienceAward);
-            stringBuilder.AppendFormat(", Growth Type: {0},{1},{2},{3},{4},{5},{6}\r\n",
+                stringBuilder.Append("\t 換乘不可");
+            stringBuilder.AppendFormat("\t 性格: {0}", FormatPersonality(Personality));
+            stringBuilder.AppendFormat("\t 经验: {0}", ExperienceAward);
+            stringBuilder.AppendFormat("\t 能力增长模式: {0},{1},{2},{3},{4},{5},{6}",
                 NearGrowthType, FarGrowthType, AccuracyGrowthType, SkillGrowthType, EvasionGrowthType, IntuitionGrowthType, SPGrowthType);
 
-            stringBuilder.AppendFormat(", TerrainAdaption: {0}\r\n", TerrainAdaptionHelper.FormatTerrainAdaption(
+            stringBuilder.AppendFormat("\r\n 地形适应: {0:X}:{1}(空{2}陆{3}海{4}宇{5})", BaseOffset + (this.IsPlayStation ? 9 : 8), Convert.ToHexString(
                 new byte[] {
-                TerrainAdaptionAir,TerrainAdaptionLand, TerrainAdaptionSea, TerrainAdaptionSpace}));
-            stringBuilder.AppendFormat(", 近: {0}", NearAttack);
-            stringBuilder.AppendFormat(", 远: {0}", FarAttack);
-            stringBuilder.AppendFormat(", 命: {0}", Accuracy);
-            stringBuilder.AppendFormat(", 技: {0}", Skill);
-            stringBuilder.AppendFormat(", 回: {0}", Evasion);
-            stringBuilder.AppendFormat(", 直: {0}", Intuition);
-            stringBuilder.AppendFormat(", SP: {0}", StartSP);
-            stringBuilder.Append("\r\n 精神");
-            if (SpiritCommandsOrSkills != null)
-            {
-                foreach (var pilotSpiritCommandsOrSkill in SpiritCommandsOrSkills)
-                {
-                    stringBuilder.AppendFormat(", {0}({1})", PilotSpiritCommandsOrSkill.Format(pilotSpiritCommandsOrSkill.SpiritCommandsOrSkill), pilotSpiritCommandsOrSkill.AcquireAtLevel);
-                }
-            }
+                (byte)(TerrainAdaptionAir*16+TerrainAdaptionSea), (byte)(TerrainAdaptionLand*16+TerrainAdaptionSpace)})
+
+                ,TerrainAdaptionHelper.FormatTerrainAdaption(TerrainAdaptionAir)
+                ,TerrainAdaptionHelper.FormatTerrainAdaption(TerrainAdaptionLand)
+                , TerrainAdaptionHelper.FormatTerrainAdaption(TerrainAdaptionSea)
+                , TerrainAdaptionHelper.FormatTerrainAdaption(TerrainAdaptionSpace));
+            stringBuilder.AppendFormat("\t 近: {0:X}:{1}", BaseOffset + (this.IsPlayStation ? 0xb : 0xa), NearAttack);
+            stringBuilder.AppendFormat("\t 远: {0}", FarAttack);
+            stringBuilder.AppendFormat("\t 命: {0}", Accuracy);
+            stringBuilder.AppendFormat("\t 技: {0}", Skill);
+            stringBuilder.AppendFormat("\t 回: {0}", Evasion);
+            stringBuilder.AppendFormat("\t 直: {0}", Intuition);
+            stringBuilder.AppendFormat("\t SP: {0}", StartSP);
+            stringBuilder.Append("\r\n 精神/技能:");
+            stringBuilder.AppendLine(FormatSpiritCommandsOrSkills(SpiritCommandsOrSkills));
             return stringBuilder.ToString();
         }
 
@@ -248,39 +265,29 @@ namespace Entities
             row.AppendLine(string.Format("     - {0}", TerrainAdaptionHelper.FormatTerrainAdaption(this.TerrainAdaptionLand)));
             row.AppendLine(string.Format("     - {0}", TerrainAdaptionHelper.FormatTerrainAdaption(this.TerrainAdaptionSea)));
             row.AppendLine(string.Format("     - {0}", TerrainAdaptionHelper.FormatTerrainAdaption(this.TerrainAdaptionSpace)));
-            if (SpiritCommandsOrSkills != null)
-            {
-                var validSpiritCommandsOrSkills = SpiritCommandsOrSkills.Where(s => s.SpiritCommandsOrSkill != 0);
-                var first6 = validSpiritCommandsOrSkills.Take(6).ToList();
-                var rest = validSpiritCommandsOrSkills.Skip(6).ToList();
-                foreach (var pilotSpiritCommandsOrSkill in first6)
-                {
-                    row.AppendLine(string.Format("     - {0} {1}", PilotSpiritCommandsOrSkill.Format(pilotSpiritCommandsOrSkill.SpiritCommandsOrSkill), pilotSpiritCommandsOrSkill.AcquireAtLevel));
-                }
-                if (rest.Count > 1)
-                {
-                    bool isFirst = true;
-                    foreach (var pilotSpiritCommandsOrSkill in rest)
-                    {
-                        if (isFirst)
-                        {
-                            row.Append("     - | ");
-                            isFirst = false;
-                        }
-                        else
-                        {
-                            row.Append("       | ");
-                        }
-                        row.AppendLine(string.Format("{0} {1}", PilotSpiritCommandsOrSkill.Format(pilotSpiritCommandsOrSkill.SpiritCommandsOrSkill), pilotSpiritCommandsOrSkill.AcquireAtLevel));
-                    }
-                }
-                else if (rest.Count == 1)
-                {
-                    var pilotSpiritCommandsOrSkill = rest.First();
-                    row.AppendLine(string.Format("     - {0} {1}", PilotSpiritCommandsOrSkill.Format(pilotSpiritCommandsOrSkill.SpiritCommandsOrSkill), pilotSpiritCommandsOrSkill.AcquireAtLevel));
-                }
-            }
+            row.AppendLine(string.Format("     - {0}", FormatSpiritCommandsOrSkills(SpiritCommandsOrSkills)));
+           
             return row.ToString();
+        }
+        string FormatSpiritCommandsOrSkills(List<PilotSpiritCommandsOrSkill>? spiritCommandsOrSkills)
+        {
+            if (SpiritCommandsOrSkills == null) return string.Empty;
+            StringBuilder sb = new StringBuilder();
+            var validSpiritCommandsOrSkills = SpiritCommandsOrSkills.Where(s => s.SpiritCommandsOrSkill != 0);
+            byte previousSpiritCommandsOrSkill = 0;
+            foreach (var pilotSpiritCommandsOrSkill in validSpiritCommandsOrSkills)
+            {
+                string pilotSpiritCommandsOrSkillString = string.Format("{0} {1}", PilotSpiritCommandsOrSkill.Format(
+                    pilotSpiritCommandsOrSkill.BaseAddress,
+                    pilotSpiritCommandsOrSkill.SpiritCommandsOrSkill, previousSpiritCommandsOrSkill), pilotSpiritCommandsOrSkill.AcquireAtLevel);
+                if (sb.Length != 0)
+                {
+                    sb.Append("\t ");
+                }
+                sb.Append(pilotSpiritCommandsOrSkillString);
+                previousSpiritCommandsOrSkill = pilotSpiritCommandsOrSkill.SpiritCommandsOrSkill;
+            }
+            return sb.ToString();
         }
 
         private int Skill99()
