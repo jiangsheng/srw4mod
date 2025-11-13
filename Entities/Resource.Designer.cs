@@ -62,7 +62,8 @@ namespace Entities {
         
         /// <summary>
         ///   Looks up a localized string similar to     .. grid-item::
-        ///        :columns: auto   .
+        ///        :columns: auto
+        ///.
         /// </summary>
         internal static string RstUnitGridColumnAuto {
             get {
@@ -71,8 +72,44 @@ namespace Entities {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to             .. grid-item:: 
+        ///                :columns: auto
+        ///
+        ///.
+        /// </summary>
+        internal static string RstUnitGridColumnAuto2 {
+            get {
+                return ResourceManager.GetString("RstUnitGridColumnAuto2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to             .. grid-item:: {0}
+        ///                :columns: auto
+        ///
+        ///.
+        /// </summary>
+        internal static string RstUnitGridColumnAuto2WithText {
+            get {
+                return ResourceManager.GetString("RstUnitGridColumnAuto2WithText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to     .. grid-item::{0}
+        ///        :columns: auto
+        ///.
+        /// </summary>
+        internal static string RstUnitGridColumnAutoWithText {
+            get {
+                return ResourceManager.GetString("RstUnitGridColumnAutoWithText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to     .. grid-item::
-        ///        :class: flex-break.
+        ///        :class: flex-break
+        ///.
         /// </summary>
         internal static string RstUnitGridColumnBreak {
             get {
@@ -81,7 +118,20 @@ namespace Entities {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to .. grid-item:: {0}.
+        ///   Looks up a localized string similar to             .. grid-item::
+        ///                :class: flex-break
+        ///
+        ///.
+        /// </summary>
+        internal static string RstUnitGridColumnBreak2 {
+            get {
+                return ResourceManager.GetString("RstUnitGridColumnBreak2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to     .. grid-item:: {0}
+        ///.
         /// </summary>
         internal static string RstUnitGridColumnWithText {
             get {
@@ -90,8 +140,18 @@ namespace Entities {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to             .. grid-item::{0}.
+        /// </summary>
+        internal static string RstUnitGridColumnWithText2 {
+            get {
+                return ResourceManager.GetString("RstUnitGridColumnWithText2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to     .. grid-item:: {0}
-        ///        :columns: {1}.
+        ///        :columns: {1}
+        ///.
         /// </summary>
         internal static string RstUnitGridColumnWithTextAndSpan {
             get {
@@ -100,19 +160,43 @@ namespace Entities {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to           .. grid-item:: {0}
+        ///                :columns: {1}
+        ///
+        ///.
+        /// </summary>
+        internal static string RstUnitGridColumnWithTextAndSpan2 {
+            get {
+                return ResourceManager.GetString("RstUnitGridColumnWithTextAndSpan2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to 
         ///.. grid:: 
-        ///    :gutter: 3
+        ///    :gutter: 0
         ///    :margin: 0
         ///    :padding: 0
         ///    :outline:
-        ///
-        ///    .. grid-item::
-        ///        :columns: auto   .
+        ///.
         /// </summary>
         internal static string RstUnitGridHeader {
             get {
                 return ResourceManager.GetString("RstUnitGridHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to         .. grid:: 
+        ///            :gutter: 0
+        ///            :margin: 0
+        ///            :padding: 0
+        ///
+        ///.
+        /// </summary>
+        internal static string RstUnitGridHeader2 {
+            get {
+                return ResourceManager.GetString("RstUnitGridHeader2", resourceCulture);
             }
         }
     }

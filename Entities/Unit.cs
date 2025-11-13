@@ -1,9 +1,14 @@
 ﻿
 
 
+using CsvHelper.Configuration.Attributes;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
+using System.Xml.Linq;
 
 namespace Entities
 {
@@ -43,10 +48,40 @@ namespace Entities
         public ushort RepairCost { get; set; }
         public byte MoveRange { get; set; }
         public byte MoveType { get; set; }
-        public byte TerrainAdaptionAir { get; set; }
-        public byte TerrainAdaptionSea { get; set; }
-        public byte TerrainAdaptionSpace { get; set; }
-        public byte TerrainAdaptionLand { get; set; }
+
+        public TerrainAdaptionSet? TerrainAdaptionSet { get; set; }
+        public byte TerrainAdaptionAir
+        {
+            get
+            {
+                if (TerrainAdaptionSet == null) throw new ArgumentNullException(nameof(TerrainAdaptionSet));
+                return this.TerrainAdaptionSet.GetTerrainAdaptionByIndex(TerrainAdaptionSetIndex.Air);
+            }
+        }
+        public byte TerrainAdaptionSea
+        {
+            get
+            {
+                if (TerrainAdaptionSet == null) throw new ArgumentNullException(nameof(TerrainAdaptionSet));
+                return this.TerrainAdaptionSet.GetTerrainAdaptionByIndex(TerrainAdaptionSetIndex.Sea);
+            }
+        }
+        public byte TerrainAdaptionLand
+        {
+            get
+            {
+                if (TerrainAdaptionSet == null) throw new ArgumentNullException(nameof(TerrainAdaptionSet));
+                return this.TerrainAdaptionSet.GetTerrainAdaptionByIndex(TerrainAdaptionSetIndex.Land);
+            }
+        }
+        public byte TerrainAdaptionSpace
+        {
+            get
+            {
+                if (TerrainAdaptionSet == null) throw new ArgumentNullException(nameof(TerrainAdaptionSet));
+                return this.TerrainAdaptionSet.GetTerrainAdaptionByIndex(TerrainAdaptionSetIndex.Space);
+            }
+        }
         public byte Armor { get; set; }
         public byte Mobility { get; set; }
         public byte Limit { get; set; }
@@ -56,7 +91,10 @@ namespace Entities
         public byte AmmoWeaponCount { get; set; }
         public int BaseOffset { get; set; }
         public List<UnitWeapon>? Weapons { get; set; }
-        public ushort FirstWeaponIndex { get; private set; }
+        [Ignore]
+        public ushort FirstWeaponIndex { get; set; }
+        [Ignore]
+        public int FirstAppearance { get; set; }
 
         public int PreferredPilotId { get; set; }
         public static List<Unit>? Parse(byte[] unitData, int headerStartOffset, int offsetBase, int footerOffset, List<UnitMetaData> unitMetaData, List<Weapon> weapons)
@@ -102,10 +140,14 @@ namespace Entities
             unit.EnglishName = fixUnit.EnglishName;
             unit.Affiliation = fixUnit.Affiliation;
             unit.FranchiseName = fixUnit.FranchiseName;
+            unit.FirstAppearance = fixUnit.FirstAppearance;
+
+            unit.PreferredPilotId = fixUnit.PreferredPilotId;
             if (unit.FixedSeatPilotId != 0)
             {
                 unit.PreferredPilotId = unit.FixedSeatPilotId;
             }
+
             if (string.Compare(unit.FranchiseName, "原创", StringComparison.Ordinal) == 0)
             {
                 unit.FranchiseName = "オリジナル";
@@ -120,31 +162,28 @@ namespace Entities
                 foreach (var unitWeapon in unit.Weapons)
                 {
                     var fixWeapon = weapons.Where(w => w.Id == unitWeapon.WeaponIndex).First();
-                    unitWeapon.Name = fixWeapon.Name;
                     if (!fixWeapon.HasAssignedOwner)
                     {
                         fixWeapon.HasAssignedOwner = true;
-                        fixWeapon.FirstOwner = unit.Name;
+                        fixWeapon.FirstOwner = unit;
                     }
                     unitWeapon.FirstOwner = fixWeapon.FirstOwner;
-                    unitWeapon.Damage = fixWeapon.Damage;
-                    unitWeapon.Range = fixWeapon.MaxRange;
-                    unitWeapon.Ammo = fixWeapon.MaxAmmo;
-                    unitWeapon.En = fixWeapon.EnergyCost;
-                    unitWeapon.IsMap = fixWeapon.IsMap;
+
+                    unitWeapon.Weapon = fixWeapon;
+                    unitWeapon.Unit = unit;
                 }
             }
         }
 
-        private static Unit ParseUnit(byte[] playStationUnitData, int baseOffset, int unitIndex)
+        private static Unit ParseUnit(byte[] unitData, int baseOffset, int unitIndex)
         {
             Unit unit = new Unit();
             unit.BaseOffset = baseOffset;
             int offset = baseOffset;
             //offset 0
-            byte iconId1 = playStationUnitData[offset++];
+            byte iconId1 = unitData[offset++];
             //offset 1
-            byte fanchiseId = playStationUnitData[offset++];
+            byte fanchiseId = unitData[offset++];
 
             var iconId2 = fanchiseId & 0x01;
 
@@ -153,25 +192,25 @@ namespace Entities
             unit.Id = unitIndex;
             unit.FranchiseId = (byte)(fanchiseId & 0xFE);
             //offset 2,3
-            unit.PortraitId = BitConverter.ToUInt16(playStationUnitData, offset);            
+            unit.PortraitId = BitConverter.ToUInt16(unitData, offset);
             offset += 2;
             //offset 4
-            unit.FixedSeatPilotId = playStationUnitData[offset++];
+            unit.FixedSeatPilotId = unitData[offset++];
             //offset 5
-            unit.TransferFranchiseId = playStationUnitData[offset++];
+            unit.TransferFranchiseId = unitData[offset++];
             //offset 6
-            var sizeAndBGM = playStationUnitData[offset++];
+            var sizeAndBGM = unitData[offset++];
 
             unit.UnitSize = (byte)(sizeAndBGM & 0x60);
             unit.UnitSizeBit = (byte)(sizeAndBGM & 0x10);
             unit.Discardable = (sizeAndBGM & 0x80) == 0;
             unit.BackgroundMusic = (byte)(sizeAndBGM & 0x0F);
             //offset 7
-            unit.TransformOrCombineType = playStationUnitData[offset++];
+            unit.TransformOrCombineType = unitData[offset++];
             //offset 8
-            var unitSpecialSkill1 = playStationUnitData[offset++];
+            var unitSpecialSkill1 = unitData[offset++];
             //offset 9
-            var unitSpecialSkill2 = playStationUnitData[offset++];
+            var unitSpecialSkill2 = unitData[offset++];
             unit.IsAggressive = (unitSpecialSkill1 & 0x1) != 0;
             unit.HasEnergyRecovery = (unitSpecialSkill1 & 0x02) != 0;
             unit.HPRecoveryType = (byte)(unitSpecialSkill1 & 0x0C);
@@ -183,88 +222,85 @@ namespace Entities
             unit.HasShield = (unitSpecialSkill2 & 0x20) != 0;
             unit.UnknownUnitSpecialSkill2 = (byte)(unitSpecialSkill1 & (~0x3F));
             //offset A
-            unit.Team = playStationUnitData[offset++];
+            unit.Team = unitData[offset++];
             //offset B,C,D,E
             offset += 4;
             //offset F
-            unit.Experience = playStationUnitData[offset++];
+            unit.Experience = unitData[offset++];
             //offset 10,11
-            unit.Gold = BitConverter.ToUInt16(playStationUnitData, offset);            
+            unit.Gold = BitConverter.ToUInt16(unitData, offset);
             offset += 2;
             //offset 12,13
-            unit.RepairCost = BitConverter.ToUInt16(playStationUnitData, offset);
+            unit.RepairCost = BitConverter.ToUInt16(unitData, offset);
             offset += 2;
             //offset 14
-            unit.MoveRange = playStationUnitData[offset++];
+            unit.MoveRange = unitData[offset++];
             Debug.Assert(unit.MoveRange < 16);
             //offset 15
-            unit.MoveType = playStationUnitData[offset++];
+            unit.MoveType = unitData[offset++];
             Debug.Assert(unit.MoveType < 0xD);
             //offset 16
-            var TerrainAdaption = playStationUnitData[offset++];
-            unit.TerrainAdaptionAir = (byte)((TerrainAdaption & 0xF0) / 16);
+            var terrainAdaptionLow = unitData[offset++];
+            var terrainAdaptionHigh = unitData[offset++];
+            unit.TerrainAdaptionSet = TerrainAdaptionSet.FromPilotOrUnitAdaptions(
+                terrainAdaptionLow, terrainAdaptionHigh);
             Debug.Assert(unit.TerrainAdaptionAir < 5);
-            unit.TerrainAdaptionSea = (byte)(TerrainAdaption & 0x0F);
             Debug.Assert(unit.TerrainAdaptionSea < 5);
-            //offset 17
-            TerrainAdaption = playStationUnitData[offset++];
-            unit.TerrainAdaptionSpace = (byte)((TerrainAdaption & 0xF0) / 16);
             Debug.Assert(unit.TerrainAdaptionSpace < 5);
-            unit.TerrainAdaptionLand = (byte)(TerrainAdaption & 0x0F);
             Debug.Assert(unit.TerrainAdaptionLand < 5);
             //offset 18
-            unit.Armor = playStationUnitData[offset++];
+            unit.Armor = unitData[offset++];
             //offset 19
-            unit.Mobility = playStationUnitData[offset++];
+            unit.Mobility = unitData[offset++];
             //offset 1A
-            unit.Limit = playStationUnitData[offset++];
+            unit.Limit = unitData[offset++];
             //offset 1B
-            unit.Energy = playStationUnitData[offset++];
+            unit.Energy = unitData[offset++];
             //offset 1C,1D
-            unit.HP = BitConverter.ToUInt16(playStationUnitData, offset);
+            unit.HP = BitConverter.ToUInt16(unitData, offset);
             offset += 2;
             //offset 1E
-            unit.WeaponCount = playStationUnitData[offset++];
+            unit.WeaponCount = unitData[offset++];
             Debug.Assert(unit.WeaponCount < 32);
             //offset 1F
-            unit.AmmoWeaponCount = playStationUnitData[offset++];
+            unit.AmmoWeaponCount = unitData[offset++];
             Debug.Assert(unit.AmmoWeaponCount < 32);
             Debug.Assert(unit.AmmoWeaponCount <= unit.WeaponCount);
             Debug.Assert(unit.WeaponCount < 0x20);
 
-            unit.FirstWeaponIndex = (ushort)(BitConverter.ToUInt16(playStationUnitData, offset) & 0x03FF);
+            unit.FirstWeaponIndex = (ushort)(BitConverter.ToUInt16(unitData, offset) & 0x03FF);
 
             //the last unit has no weapon 
             if (unit.WeaponCount > 0)
             {
                 unit.Weapons = new List<UnitWeapon>();
-                var weaponIndex = (ushort)(BitConverter.ToUInt16(playStationUnitData, offset));
+                var weaponIndex = (ushort)(BitConverter.ToUInt16(unitData, offset));
                 while (weaponIndex > 0)
                 {
                     UnitWeapon unitWeapon = new UnitWeapon();
                     unitWeapon.BaseOffset = offset;
                     unitWeapon.WeaponIndex = (ushort)(weaponIndex & 0x03FF);
-                    unitWeapon.AmmoSlot = (byte)((playStationUnitData[offset + 1] & 0xFC) / 4);
+                    unitWeapon.AmmoSlot = (byte)((unitData[offset + 1] & 0xFC) / 4);
                     //Debug.Assert(unitWeapon.AmmoSlot <= unit.AmmoWeaponCount);
                     offset += 2;
-                    var weaponOrderAndType = playStationUnitData[offset++];
+                    var weaponOrderAndType = unitData[offset++];
                     unitWeapon.IsConditional = (weaponOrderAndType & 0x80) > 0;
                     unitWeapon.Order = (byte)(weaponOrderAndType & 0x1F);
                     Debug.Assert(unitWeapon.Order <= unit.WeaponCount);
                     if (unitWeapon.IsConditional)
                     {
-                        unitWeapon.AvailableAtStage = playStationUnitData[offset++];
+                        unitWeapon.AvailableAtStage = unitData[offset++];
                     }
                     unit.Weapons.Add(unitWeapon);
-                    weaponIndex = (ushort)((playStationUnitData[offset + 1] * 256 + playStationUnitData[offset]));
+                    weaponIndex = (ushort)((unitData[offset + 1] * 256 + unitData[offset]));
                 }
             }
             else
             {
-                var weaponIndex = (ushort)(playStationUnitData[offset + 1] * 256 + playStationUnitData[offset]);
+                var weaponIndex = (ushort)(unitData[offset + 1] * 256 + unitData[offset]);
                 while (weaponIndex > 0)
                 {
-                    weaponIndex = (ushort)(playStationUnitData[offset + 1] * 256 + playStationUnitData[offset]);
+                    weaponIndex = (ushort)(unitData[offset + 1] * 256 + unitData[offset]);
                     if (weaponIndex > 0)
                         offset += 3;
                 }
@@ -280,12 +316,12 @@ namespace Entities
             stringBuilder.AppendFormat("\t属: {0}", Affiliation);
             stringBuilder.AppendFormat("\t作: {0}", FranchiseName);
             stringBuilder.AppendFormat("\t图标: {0:X}:{1:X}:", BaseOffset, IconId);
-            stringBuilder.AppendFormat("\t游戏作:{0:X}:{1:X} ({2})", BaseOffset+1, FranchiseId, Franchise.FormatFranchise(FranchiseId));
+            stringBuilder.AppendFormat("\t游戏作:{0:X}:{1:X} ({2})", BaseOffset + 1, FranchiseId, Franchise.FormatFranchise(FranchiseId));
             stringBuilder.AppendFormat("\t图像: {0:X}:{1:X}", BaseOffset + 2, PortraitId);
             stringBuilder.AppendFormat("\t固定驾驶员: {0:X}:{1:X}", BaseOffset + 4, FixedSeatPilotId);
             stringBuilder.AppendFormat("\t换乘组: {0:X}:{1:X}", BaseOffset + 5, TransferFranchiseId);
             stringBuilder.AppendFormat("\t大小:{0:X}:{1:X} ({2})", BaseOffset + 6, UnitSize, FormatUnitSize(UnitSize));
-            stringBuilder.AppendFormat("\t可废弃: {0}", Discardable?"是":"否");
+            stringBuilder.AppendFormat("\t可废弃: {0}", Discardable ? "是" : "否");
             stringBuilder.AppendFormat("\tBGM: {0:X}", BackgroundMusic);
             stringBuilder.AppendFormat("\r\n合体分离变形种类: {0:X}:{1:X}", BaseOffset + 7, TransformOrCombineType);
             stringBuilder.AppendFormat("\t技能1: {0:X}", BaseOffset + 8);
@@ -333,20 +369,16 @@ namespace Entities
             {
                 stringBuilder.AppendFormat("\t未知技能 {0:X} ", UnknownUnitSpecialSkill2);
             }
-            stringBuilder.AppendFormat("\t分队: {0:X}:{1:X}", BaseOffset + 0xa,Team);
+            stringBuilder.AppendFormat("\t分队: {0:X}:{1:X}", BaseOffset + 0xa, Team);
             stringBuilder.AppendFormat("\t经验: {0:X}:{1}", BaseOffset + 0xf, Experience);
             stringBuilder.AppendFormat("\t获得资金: {0:X}:{1}", BaseOffset + 0x10, Gold);
             stringBuilder.AppendFormat("\t修理费 RepairCost: {0:X}:{1}", BaseOffset + 0x12, RepairCost);
+            stringBuilder.AppendFormat("\t地形参照:{0:X}", PreferredPilotId);
             stringBuilder.AppendFormat("\r\n移动力: {0:X}:{1}", BaseOffset + 0x14, MoveRange);
             stringBuilder.AppendFormat("\t移动类型: {0:X}:{1:X}", BaseOffset + 0x15, MoveType);
-            stringBuilder.AppendFormat("\t地形适应: {0:X}:{1}(空{2}陆{3}海{4}宇{5})", BaseOffset + 0x16, Convert.ToHexString(
-                new byte[] {
-                (byte)(TerrainAdaptionAir*16+TerrainAdaptionLand), (byte)(TerrainAdaptionSea*16+TerrainAdaptionSpace)})
-                , TerrainAdaptionHelper.FormatTerrainAdaption(TerrainAdaptionAir)
-                , TerrainAdaptionHelper.FormatTerrainAdaption(TerrainAdaptionLand)
-                , TerrainAdaptionHelper.FormatTerrainAdaption(TerrainAdaptionSea)
-                , TerrainAdaptionHelper.FormatTerrainAdaption(TerrainAdaptionSpace));
-
+            stringBuilder.AppendFormat("\t地形适应: {0:X}:{1}({2})", BaseOffset + 0x16,
+                Convert.ToHexString(this.TerrainAdaptionSet != null ? this.TerrainAdaptionSet.ToPilotOrUnitAdaptions() : new byte[] { }),
+                this.TerrainAdaptionSet?.ToString());
             stringBuilder.AppendFormat("\t甲: {0:X}:{1}", BaseOffset + 0x18, Armor * 10);
             stringBuilder.AppendFormat("\t运: {0:X}:{1}", BaseOffset + 0x19, Mobility);
             stringBuilder.AppendFormat("\t限: {0:X}:{1}", BaseOffset + 0x1a, Limit);
@@ -391,9 +423,9 @@ namespace Entities
             {
                 return 0;
             }
-            var bestNearWeapon = weapons.Where(w => w.Range == 1).OrderByDescending(w => w.Damage).FirstOrDefault();
+            var bestNearWeapon = weapons.Where(w => w.Weapon != null && w.Weapon.MaxRange == 1).OrderByDescending(w => w.Weapon == null ? 0 : w.Weapon.Damage).FirstOrDefault();
             if (bestNearWeapon == null) return 0;
-            return bestNearWeapon.Damage;
+            return bestNearWeapon.Weapon == null ? 0 : bestNearWeapon.Weapon.Damage;
         }
         public int GetFarDamage()
         {
@@ -402,9 +434,9 @@ namespace Entities
             {
                 return 0;
             }
-            var bestFarWeapon = weapons.Where(w => w.Range > 1 && w.IsMap == false && w.Damage > 0).OrderByDescending(w => w.Damage).FirstOrDefault();
+            var bestFarWeapon = weapons.Where(w => w.Weapon != null && w.Weapon.MaxRange > 1 && w.Weapon.IsMap == false && w.Weapon.Damage > 0).OrderByDescending(w => w.Weapon == null ? 0 : w.Weapon.Damage).FirstOrDefault();
             if (bestFarWeapon == null) return 0;
-            return bestFarWeapon.Damage;
+            return bestFarWeapon.Weapon == null ? 0 : bestFarWeapon.Weapon.Damage;
         }
         string GetMaxRangeExceptMap(List<UnitWeapon>? weapons)
         {
@@ -412,9 +444,9 @@ namespace Entities
             {
                 return "🚫";
             }
-            var bestFarWeapon = weapons.Where(w => w.Range > 1 && w.IsMap == false && w.Damage > 0).OrderByDescending(w => w.Range).FirstOrDefault();
+            var bestFarWeapon = weapons.Where(w => w.Weapon != null && w.Weapon.MaxRange > 1 && w.Weapon.IsMap == false && w.Weapon.Damage > 0).OrderByDescending(w => w.Weapon == null ? 0 : w.Weapon.MaxRange).FirstOrDefault();
             if (bestFarWeapon == null) return "🚫";
-            return bestFarWeapon.Range.ToString();
+            return bestFarWeapon.Weapon == null ? "0" : bestFarWeapon.Weapon.MaxRange.ToString();
         }
         public string? ToRstRow(bool isPlayStation)
         {
@@ -422,11 +454,12 @@ namespace Entities
             row.AppendLine(string.Format("   * - {0:X2}", this.Id));
             row.AppendLine(string.Format("     - {0}", this.Affiliation));
             int unitIcon = GetUnitIcon(this.Id);
-            if(unitIcon!=0)
+            if (unitIcon != 0)
                 row.AppendLine(string.Format("     - .. image:: ../units/images/icon/srw4_units_icon_{0:X2}_B.png", unitIcon));
             else
                 row.AppendLine("     - ");
-            row.AppendLine(string.Format("     - {0}", this.Name));
+            var unitLabel = RstHelper.GetLabelName(this.EnglishName);
+            row.AppendLine(string.Format("     - \\ :ref:`{0} <srw4_unit_{1}>`\\ ", this.Name, unitLabel));
             row.AppendLine(string.Format("     - {0}", this.EnglishName));
             row.AppendLine(string.Format("     - {0}", Franchise.ToRstFranchise(this.FranchiseName, "units")));
             row.AppendLine(string.Format("     - {0}", this.HP));
@@ -440,11 +473,11 @@ namespace Entities
             var farDamage = this.GetFarDamage();
             row.AppendLine(string.Format("     - {0}", farDamage == 0 ? "🚫" : farDamage.ToString()));
             row.AppendLine(string.Format("     - {0}", this.GetMaxRangeExceptMap(this.Weapons)));
-            row.AppendLine(string.Format("     - {0}", TerrainAdaptionHelper.FormatMovementType(this.MoveType)));
-            row.AppendLine(string.Format("     - {0}", TerrainAdaptionHelper.FormatTerrainAdaption(this.TerrainAdaptionAir)));
-            row.AppendLine(string.Format("     - {0}", TerrainAdaptionHelper.FormatTerrainAdaption(this.TerrainAdaptionLand)));
-            row.AppendLine(string.Format("     - {0}", TerrainAdaptionHelper.FormatTerrainAdaption(this.TerrainAdaptionSea)));
-            row.AppendLine(string.Format("     - {0}", TerrainAdaptionHelper.FormatTerrainAdaption(this.TerrainAdaptionSpace)));
+            row.AppendLine(string.Format("     - {0}", TerrainAdaptionSet.FormatMovementType(this.MoveType)));
+            row.AppendLine(string.Format("     - {0}", TerrainAdaptionSet.FormatTerrainAdaption(this.TerrainAdaptionAir)));
+            row.AppendLine(string.Format("     - {0}", TerrainAdaptionSet.FormatTerrainAdaption(this.TerrainAdaptionLand)));
+            row.AppendLine(string.Format("     - {0}", TerrainAdaptionSet.FormatTerrainAdaption(this.TerrainAdaptionSea)));
+            row.AppendLine(string.Format("     - {0}", TerrainAdaptionSet.FormatTerrainAdaption(this.TerrainAdaptionSpace)));
             return row.ToString();
         }
 
@@ -464,343 +497,538 @@ namespace Entities
             }
         }
 
-        internal static void RstAppendUnit(StringBuilder stringBuilder, int unitId, List<UnitMetaData> units, string unitComment, List<Unit> unitsSnes, List<Unit>? unitsPlayStation, List<Pilot>? pilotsSnes, List<Pilot>? pilotsPlayStation, List<Weapon>? weaponSnes, List<Weapon>? weaponPlayStation)
+        internal static void RstAppendUnit(StringBuilder stringBuilder, int unitId, List<UnitMetaData> units, string unitComment, Rom snesRom, Rom playstationRom, Dictionary<string, string> comments, UnitTScoreParametersSet unitTScoreParametersSet)
         {
             var unitMetaData = units.FirstOrDefault(u => u.Id == unitId);
-            if (unitMetaData == null)
+            if (unitMetaData == null || unitMetaData.Name == null)
             {
-                return;
+                throw new ArgumentNullException(nameof(unitMetaData));
             }
-            var snesUnit = unitsSnes.FirstOrDefault(u => u.Id == unitId);
-            var playstationUnit = unitsPlayStation?.FirstOrDefault(u => u.Id == unitId);
 
-            int preferedPilotId = snesUnit.FixedSeatPilotId;
-            if (preferedPilotId <= 0&& unitMetaData.PreferredPilotId.HasValue)
-            {
-                preferedPilotId = unitMetaData.PreferredPilotId.Value;
-            }
-            List<byte> snesUnitTerrainAdoptions = new List<byte>();
-            List<byte> playStationUnitTerrainAdoptions = new List<byte>();
-            List<byte> snesUnitTerrainAdoptionsWithPreferdPilot = new List<byte>();
-            List<byte> playStationUnitTerrainAdoptionsWithPreferdPilot = new List<byte>();
+
+            var snesUnit = snesRom.Units?.FirstOrDefault(u => u.Id == unitId);
+            if (snesUnit == null || snesUnit.TerrainAdaptionSet == null)
+                throw new ArgumentNullException(nameof(snesUnit));
+
+            var playstationUnit = playstationRom.Units?.FirstOrDefault(u => u.Id == unitId);
+
+            if (playstationUnit == null || playstationUnit.TerrainAdaptionSet == null)
+                throw new ArgumentNullException(nameof(playstationUnit));
+
             RstHelper.AppendHeader(stringBuilder, unitMetaData.Name, '^');
-            RstAppendUnitMetaData(stringBuilder, unitId, pilotsSnes, pilotsPlayStation, snesUnit, playstationUnit, preferedPilotId
-                , snesUnitTerrainAdoptions, playStationUnitTerrainAdoptions, snesUnitTerrainAdoptionsWithPreferdPilot, playStationUnitTerrainAdoptionsWithPreferdPilot);
-            RstAppendUnitWeapons(stringBuilder, weaponSnes, weaponPlayStation, snesUnit, snesUnitTerrainAdoptions, playStationUnitTerrainAdoptions, snesUnitTerrainAdoptionsWithPreferdPilot, playStationUnitTerrainAdoptionsWithPreferdPilot);
-
+            stringBuilder.AppendLine();
             var unitLabel = RstHelper.GetLabelName(unitMetaData.EnglishName);
             Debug.Assert(!string.IsNullOrEmpty(unitLabel));
-            stringBuilder.AppendLine(string.Format(".. _srw4_units_{0}_commentBegin", unitLabel));
-            stringBuilder.AppendLine(unitComment);
-            stringBuilder.AppendLine(string.Format(".. _srw4_units_{0}_commentEnd:", unitLabel));
+
+            stringBuilder.AppendLine(string.Format(".. _srw4_unit_{0}:", unitLabel));
             stringBuilder.AppendLine();
 
+            var snesPreferredPilot = unitMetaData.PreferredPilotId == 0 ? null : snesRom.Pilots?.FirstOrDefault(p => p.Id == snesUnit.PreferredPilotId);
+            //default to the unit terrain adaption
+            TerrainAdaptionSet snesPreferredPilotTerrainAdaptionSet = snesUnit.TerrainAdaptionSet;
+
+            if (snesPreferredPilot != null)
+            {
+                if (snesPreferredPilot.TerrainAdaptionSet != null)
+                    snesPreferredPilotTerrainAdaptionSet = snesPreferredPilot.TerrainAdaptionSet;
+            }
+            var playstationPreferredPilot = unitMetaData.PreferredPilotId == 0 ? null : playstationRom.Pilots?.FirstOrDefault(p => p.Id == playstationUnit.PreferredPilotId);
+            //default to the unit terrain adaption
+            TerrainAdaptionSet playstationPreferredPilotTerrainAdaptionSet = playstationUnit.TerrainAdaptionSet;
+
+            if (playstationPreferredPilot != null)
+            {
+                if (playstationPreferredPilot.TerrainAdaptionSet != null)
+                    playstationPreferredPilotTerrainAdaptionSet = playstationPreferredPilot.TerrainAdaptionSet;
+            }
+
+            TerrainAdaptionSet snesEffectiveUnitTerrainAdoptions = TerrainAdaptionSet.Combine(snesUnit.TerrainAdaptionSet, snesPreferredPilotTerrainAdaptionSet);
+            TerrainAdaptionSet playstationEffectiveUnitTerrainAdoptions = TerrainAdaptionSet.Combine(playstationUnit.TerrainAdaptionSet, playstationPreferredPilotTerrainAdaptionSet);
+
+            RstAppendUnitMetaData(stringBuilder, unitMetaData, unitId, snesRom, playstationRom, snesUnit, playstationUnit
+                , snesPreferredPilot, playstationPreferredPilot,
+                snesEffectiveUnitTerrainAdoptions, playstationEffectiveUnitTerrainAdoptions, unitTScoreParametersSet);
+            if (snesUnit.Weapons != null)
+            {
+                RstAppendUnitWeapons(stringBuilder, snesRom, playstationRom, snesUnit, playstationUnit, snesPreferredPilot, playstationPreferredPilot,
+                    snesEffectiveUnitTerrainAdoptions, playstationEffectiveUnitTerrainAdoptions);
+            }
+            stringBuilder.AppendLine();
+            stringBuilder.AppendLine(string.Format(".. _srw4_unit_{0}_commentBegin:", unitLabel));
+            stringBuilder.AppendLine(RstHelper.GetComments(comments, string.Format("_srw4_unit_{0}", unitLabel)));
+            stringBuilder.AppendLine(string.Format(".. _srw4_unit_{0}_commentEnd:", unitLabel));
+            stringBuilder.AppendLine();
         }
 
-        private static void RstAppendUnitWeapons(StringBuilder stringBuilder, List<Weapon>? weaponSnes, List<Weapon>? weaponPlayStation, Unit snesUnit, List<byte> snesUnitTerrainAdoptions, List<byte> playStationUnitTerrainAdoptions, List<byte> snesUnitTerrainAdoptionsWithPreferdPilot, List<byte> playStationUnitTerrainAdoptionsWithPreferdPilot)
+        private static void RstAppendUnitWeapons(StringBuilder stringBuilder, Rom snesRom, Rom playstationRom, Unit snesUnit, Unit playstationUnit, Pilot? snesPreferedPilot, Pilot? playstationPreferredPilot, TerrainAdaptionSet effectiveSnesUnitTerrainAdoptions, TerrainAdaptionSet effectivePlayStationUnitTerrainAdoptions)
         {
+            if (snesUnit.Weapons == null)
+                throw new ArgumentNullException(nameof(snesUnit));
+
+            if (playstationUnit.Weapons == null)
+                throw new ArgumentNullException(nameof(playstationUnit));
+
             stringBuilder.Append(Resource.RstUnitGridHeader);
             stringBuilder.AppendLine();
-            stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnWithTextAndSpan, "名字", 3));
-            stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnWithText, "攻击"));
-            stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnWithText, "射程"));
-            stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnWithText, "命中"));
-            stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnWithText, "暴击"));
-            stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnWithTextAndSpan, "地形空陆海宇", 3));
-            stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnWithText, "残弹/EN"));
-            stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnWithText, "条件"));
-            stringBuilder.AppendLine(Resource.RstUnitGridColumnBreak);
-            var snesUnitWeapons = snesUnit.Weapons.OrderBy(w => w.Damage).ToList();
+            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithTextAndSpan, "名字", 3));
+            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "攻击"));
+            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "射程"));
+            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "命中"));
+            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "暴击"));
+            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithTextAndSpan, "地形空陆海宇", 3));
+            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "残弹/EN"));
+            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "条件"));
+            stringBuilder.Append(Resource.RstUnitGridColumnBreak);
+
+            var snesUnitWeapons = snesUnit.Weapons.OrderBy(w => w.Weapon == null ? 0 : w.Weapon.Damage).ToList();
+            var playStationUnitWeapons = playstationUnit.Weapons.OrderBy(w => w.Weapon == null ? 0 : w.Weapon.Damage).ToList();
+            var snesUnitWeaponDictionary = new Dictionary<int, UnitWeapon>();
+            var playstationUnitWeaponDictionary = new Dictionary<int, UnitWeapon>();
+
+            foreach (var snesUnitWeapon in snesUnitWeapons)
+            {
+                snesUnitWeaponDictionary.Add(snesUnitWeapon.WeaponIndex, snesUnitWeapon);
+            }
+            foreach (var playStationUnitWeapon in playStationUnitWeapons)
+            {
+                playstationUnitWeaponDictionary.Add(playStationUnitWeapon.WeaponIndex, playStationUnitWeapon);
+            }
+
             foreach (var unitWeapon in snesUnitWeapons)
             {
                 var weaponId = unitWeapon.WeaponIndex;
-                var snesWeapon = weaponSnes.FirstOrDefault(w => w.Id == weaponId);
-                var playStationWeapon = weaponPlayStation?.FirstOrDefault(w => w.Id == weaponId);
-                if (weaponId == 0x275)
-                    playStationWeapon = null;//in ps the weapon is not available
-                if (playStationWeapon != null)
+                var snesWeapon = unitWeapon.Weapon;
+                if (snesWeapon == null) throw new ArgumentNullException(nameof(snesWeapon));
+
+                var snesWeaponName = snesWeapon.GetNameWithAttributes();
+
+                Weapon playstationWeapon = snesWeapon;
+                string playstationWeaponName = snesWeaponName;
+                if (playstationUnitWeaponDictionary.ContainsKey(weaponId))
                 {
-                    stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnWithTextAndSpan, snesWeapon.Name, 3));
+                    var playstationUnitWeaponInDictionary = playstationUnitWeaponDictionary[weaponId];
+                    if (playstationUnitWeaponInDictionary.Weapon != null)
+                    {
+                        playstationWeapon = playstationUnitWeaponInDictionary.Weapon;
+                        if (playstationWeapon != null)
+                            playstationWeaponName = playstationWeapon.GetNameWithAttributes();
+                    }
                 }
                 else
                 {
-                    stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnWithTextAndSpan, snesWeapon.Name + " (仅Snes)", 3));
+                    snesWeaponName = string.Format("{0} (仅Snes)", snesWeaponName);
+                    playstationWeapon = snesWeapon;
+                    playstationWeaponName = snesWeaponName;
                 }
-                if (playStationWeapon == null || snesWeapon.Damage == playStationWeapon.Damage)
+                if (playstationWeapon == null) throw new ArgumentNullException(nameof(playstationWeapon));
+                RstAppendUnitWeapon(stringBuilder, snesUnit, playstationUnit, effectiveSnesUnitTerrainAdoptions, effectivePlayStationUnitTerrainAdoptions, snesWeapon, playstationWeapon, snesWeaponName, playstationWeaponName);
+
+                playstationUnitWeaponDictionary.Remove(weaponId);
+            }
+            var playStationOnlyWeaponIndicess = playstationUnitWeaponDictionary.Keys.ToList();
+            foreach (var playStationOnlyWeaponIndex in playStationOnlyWeaponIndicess)
+            {
+                var playStationUnitWeapon = playstationUnitWeaponDictionary[playStationOnlyWeaponIndex];
+                var weapon = playStationUnitWeapon.Weapon;
+                if (weapon == null) throw new ArgumentNullException(nameof(playStationUnitWeapon));
+                var weaponName = string.Format("{0} (仅PlayStation)", weapon.GetNameWithAttributes());
+                RstAppendUnitWeapon(stringBuilder, snesUnit, playstationUnit, effectiveSnesUnitTerrainAdoptions, effectivePlayStationUnitTerrainAdoptions, weapon, weapon, weaponName, weaponName);
+            }
+
+        }
+
+        private static void RstAppendUnitWeapon(StringBuilder stringBuilder, Unit snesUnit, Unit playstationUnit, TerrainAdaptionSet effectiveSnesUnitTerrainAdoptions,
+            TerrainAdaptionSet effectivePlayStationUnitTerrainAdoptions, Weapon snesWeapon, Weapon playstationWeapon, string snesWeaponName, string playStationWeaponName)
+        {
+            if (string.Compare(snesWeaponName, playStationWeaponName) == 0)
+            {
+                stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithTextAndSpan, snesWeaponName, 3);
+            }
+            else
+            {
+                stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithTextAndSpan, string.Empty, 3);
+                stringBuilder.AppendLine();
+                stringBuilder.AppendLine(string.Format("        | {0} (Snes)", snesWeaponName));
+                stringBuilder.AppendLine(string.Format("        | {0} (PlayStation)", playStationWeaponName));
+                stringBuilder.AppendLine();
+            }
+
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, 
+                Rom.FormatValue(snesWeapon.Damage, playstationWeapon.Damage));
+
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText,
+                Rom.FormatValue(snesWeapon.Damage, playstationWeapon.Damage));
+
+            StringBuilder rangeBuilder = new StringBuilder();
+            if (snesWeapon.MinRange == playstationWeapon.MinRange)
+            {
+                rangeBuilder.Append(snesWeapon.MinRange);
+            }
+            else
+            {
+                rangeBuilder.AppendFormat("{0}({1})", snesWeapon.MinRange, playstationWeapon.MinRange);
+            }
+            if (snesWeapon.MaxRange == playstationWeapon.MaxRange)
+            {
+                if (snesWeapon.MaxRange > 1)
                 {
-                    stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, snesWeapon.Damage);
+                    rangeBuilder.AppendFormat("~{0}", snesWeapon.MaxRange);
+                }
+            }
+            else
+            {
+                rangeBuilder.AppendFormat("~{0}({1})", snesWeapon.MaxRange, playstationWeapon.MaxRange);
+            }
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, rangeBuilder.ToString());
+
+            if (snesWeapon.AccuracyBonus == 0 &&
+                playstationWeapon.AccuracyBonus == 0)
+            {
+                stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, string.Empty);
+            }
+            else
+            {
+                stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText,
+                Rom.FormatValue(snesWeapon.AccuracyBonus.ToString("+##;-##;0"), playstationWeapon.AccuracyBonus.ToString("+##;-##;0")));
+            }
+
+            if (snesWeapon.CriticalHitRateBonus == 0 &&
+                playstationWeapon.AccuracyBonus == 0)
+            {
+                stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, string.Empty);
+            }
+            else
+            {
+                stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText,
+                Rom.FormatValue(snesWeapon.CriticalHitRateBonus.ToString("+#;-#;0"), playstationWeapon.CriticalHitRateBonus.ToString("+#;-#;0")));
+            }
+            if (snesWeapon.TerrainAdaptionSet == null)
+            {
+                throw new ArgumentNullException("snesWeapon.TerrainAdaptionSet");
+            }
+            if (playstationWeapon.TerrainAdaptionSet == null)
+            {
+                throw new ArgumentNullException("snesWeapon.TerrainAdaptionSet");
+            }
+
+            var snesWeaponEffectiveTerrainAdaptionSet = TerrainAdaptionSet.GetEffectiveTerrainWeaponAdaptions
+                (effectiveSnesUnitTerrainAdoptions, snesWeapon.TerrainAdaptionSet, snesWeapon.IsMelee,
+                snesUnit.MoveType);
+
+            var playStationWeaponEffectiveTerrainAdaptionSet = TerrainAdaptionSet.GetEffectiveTerrainWeaponAdaptions
+                (effectivePlayStationUnitTerrainAdoptions, playstationWeapon == null ? snesWeapon.TerrainAdaptionSet : playstationWeapon.TerrainAdaptionSet, playstationWeapon == null ? snesWeapon.IsMelee : playstationWeapon.IsMelee, playstationUnit.MoveType);
+            var formattedEffectiveTerrainWeaponAdaption = TerrainAdaptionSet.FormatEffectiveTerrainWeaponAdaption(snesWeapon.TerrainAdaptionSet, playstationWeapon == null ? snesWeapon.TerrainAdaptionSet : playstationWeapon.TerrainAdaptionSet, snesWeaponEffectiveTerrainAdaptionSet, playStationWeaponEffectiveTerrainAdaptionSet);
+
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithTextAndSpan, string.Join(string.Empty, formattedEffectiveTerrainWeaponAdaption), 3);
+            WriteUnitConsumption(stringBuilder, snesWeapon, playstationWeapon);
+            List<String> requirements = new List<string>();
+
+            if (snesWeapon.RequiredWill > 0 || playstationWeapon.RequiredWill > 0)
+            {
+                if (snesWeapon.RequiredWill == playstationWeapon.RequiredWill)
+                {
+                    requirements.Add(string.Format("{0}气力", snesWeapon.RequiredWill));
+                }
+                else
+                {
+                    requirements.Add(string.Format("{0} 气力 ({1})", snesWeapon.RequiredWill, playstationWeapon.RequiredWill));
+                }
+            }
+
+            if (snesWeapon.RequiredSkill > 0 || playstationWeapon.RequiredSkill > 0)
+            {
+                if (snesWeapon.RequiredSkill == playstationWeapon.RequiredSkill)
+                {
+                    requirements.Add(PilotSpiritCommandsOrSkill.Format(
+                        0, snesWeapon.RequiredSkill, 0, false));
+                }
+                else
+                {
+                    requirements.Add(string.Format("{0} ({1}", PilotSpiritCommandsOrSkill.Format(
+                        0, snesWeapon.RequiredSkill, 0, false)
+                        , PilotSpiritCommandsOrSkill.Format(
+                        0, playstationWeapon.RequiredSkill, 0, false)));
+                }
+            }
+            if (requirements.Count > 0)
+            {
+                stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, string.Join("", requirements));
+            }
+            else
+            {
+                stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, string.Empty);
+            }
+            stringBuilder.Append(Resource.RstUnitGridColumnBreak);
+        }
+
+        private static void WriteUnitConsumption(StringBuilder stringBuilder, Weapon snesWeapon, Weapon playstationWeapon)
+        {
+            if (snesWeapon.MaxAmmo > 0 || playstationWeapon.MaxAmmo > 0)
+            {
+                if (snesWeapon.MaxAmmo == playstationWeapon.MaxAmmo)
+                {
+                    stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText,
+                        string.Format("残弹 {0}", snesWeapon.MaxAmmo));
                 }
                 else
                 {
                     stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText,
-                        string.Format("{0}({1})", snesWeapon.Damage, playStationWeapon.Damage));
+                        string.Format("残弹 {0} ({1})", snesWeapon.MaxAmmo, playstationWeapon.MaxAmmo));
                 }
-                stringBuilder.AppendLine();
-                StringBuilder rangeBuilder = new StringBuilder();
-                if (playStationWeapon == null || snesWeapon.MinRange == playStationWeapon.MinRange)
-                {
-                    rangeBuilder.Append(snesWeapon.MinRange);
-                }
-                else
-                {
-                    rangeBuilder.AppendFormat("{0}({1})", snesWeapon.MinRange, playStationWeapon.MinRange);
-                }
-                if (playStationWeapon == null || snesWeapon.MaxRange == playStationWeapon.MaxRange)
-                {
-                    if (snesWeapon.MaxRange > 1)
-                    {
-                        rangeBuilder.AppendFormat("~{0}", snesWeapon.MaxRange);
-                    }
-                }
-                else
-                {
-                    if (snesWeapon.MaxRange > 1)
-                    {
-                        rangeBuilder.AppendFormat("~{0}", snesWeapon.MaxRange);
-                    }
-                    else
-                    {
-                        rangeBuilder.AppendFormat("~{0}({1})", snesWeapon.MaxRange, playStationWeapon.MaxRange);
-                    }
-                }
-                stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, rangeBuilder.ToString());
-                stringBuilder.AppendLine();
-
-
-                stringBuilder.AppendLine();
-                if (playStationWeapon == null || snesWeapon.AccuracyBonus == 0)
-                {
-                    stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, string.Empty);
-                }
-                else
-                {
-                    stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, snesWeapon.AccuracyBonus);
-                }
-                stringBuilder.AppendLine();
-
-                if (playStationWeapon == null || snesWeapon.CriticalHitRateBonus == 0)
-                {
-                    stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, string.Empty);
-                }
-                else
-                {
-                    stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, snesWeapon.CriticalHitRateBonus);
-                }
-                stringBuilder.AppendLine();
-                //List<byte> snesWeaponTerrainAdaptions = GetWeaponTerrainAdaptions(snesWeapon,)
-
-
             }
+            else if (snesWeapon.EnergyCost > 0 || playstationWeapon.EnergyCost > 0)
+            {
+                if (snesWeapon.EnergyCost == playstationWeapon.EnergyCost)
+                {
+                    stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText,
+                        string.Format("EN {0}", snesWeapon.EnergyCost));
+                }
+                else
+                {
+                    stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText,
+                        string.Format("EN {0} ({1})", snesWeapon.EnergyCost, playstationWeapon.EnergyCost));
+                }
+            }
+            else
+                stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, string.Empty);
         }
 
-        private static void RstAppendUnitMetaData(StringBuilder stringBuilder, int unitId, List<Pilot>? pilotsSnes, List<Pilot>? pilotsPlayStation, Unit snesUnit, Unit? playstationUnit, int preferedPilotId, List<byte> snesUnitTerrainAdoptions, List<byte> playStationUnitTerrainAdoptions, List<byte> snesUnitTerrainAdoptionsWithPreferedPilot, List<byte> playStationUnitTerrainAdoptionsWithPreferedPilot)
+        private static void RstAppendUnitMetaData(StringBuilder stringBuilder, UnitMetaData unitMetaData, int unitId, Rom snesRom, Rom playstationRom, Unit snesUnit, Unit playstationUnit, Pilot? snesPreferredPilot, Pilot? playstationPreferredPilot, TerrainAdaptionSet effectiveSnesUnitTerrainAdoptions, TerrainAdaptionSet effectivePlayStationUnitTerrainAdoptions, UnitTScoreParametersSet unitTScoreParametersSet)
         {
             stringBuilder.AppendLine();
             stringBuilder.AppendLine(Resource.RstUnitGridHeader);
             stringBuilder.AppendLine();
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithTextAndSpan,string.Empty,3);
             switch (unitId)
             {
-                case 0x51:
                 case 0xf8:
                 case 0x101:
                 case 0x106:
                 case 0x10d:
                     break;
                 default:
-                    stringBuilder.AppendFormat("        .. image:: ../units/images/portrait/srw4_units_portrait_{0}.png"
+
+                    stringBuilder.AppendLine();
+                    stringBuilder.AppendFormat("        .. image:: ../units/images/portrait/srw4_units_portrait_{0:X2}.png\r\n"
                 , unitId);
                     break;
             }
             stringBuilder.AppendLine();
-            stringBuilder.Append(Resource.RstUnitGridHeader);
-            stringBuilder.AppendLine();
-            stringBuilder.Append(Resource.RstUnitGridColumnAuto);
-            stringBuilder.AppendLine();
-            if (snesUnit.HP == playstationUnit.HP)
-                stringBuilder.AppendFormat("        | HP {0}\r\n", snesUnit.HP);
-            else
-                stringBuilder.AppendFormat("        | HP {0} ({1})\r\n", snesUnit.HP, playstationUnit.HP);
-            if (snesUnit.Energy == playstationUnit.Energy)
-                stringBuilder.AppendFormat("        | EN {0}\r\n", snesUnit.Energy);
-            else
-                stringBuilder.AppendFormat("        | EN {0} ({1})\r\n", snesUnit.Energy, playstationUnit.Energy);
-            if (snesUnit.Armor == playstationUnit.Armor)
-            {
-                stringBuilder.AppendFormat("        | Armor {0}\r\n", snesUnit.Armor * 10);
-            }
-            else
-            {
-                stringBuilder.AppendFormat("        | Armor {0} ({1})\r\n", snesUnit.Armor * 10, playstationUnit.Armor * 10);
-            }
-            if (snesUnit.Mobility == playstationUnit.Mobility)
-            {
-                stringBuilder.AppendFormat("        | Mobility {0}\r\n", snesUnit.Mobility);
-            }
-            else
-            {
-                stringBuilder.AppendFormat("        | Mobility {0} ({1})\r\n", snesUnit.Mobility, playstationUnit.Mobility);
-            }
-            if (snesUnit.Limit == playstationUnit.Limit)
-            {
-                stringBuilder.AppendFormat("        | Limit {0}\r\n", snesUnit.Limit);
-            }
-            else
-            {
-                stringBuilder.AppendFormat("        | Limit {0} ({1})\r\n", snesUnit.Limit, playstationUnit.Limit);
-            }
-
-            stringBuilder.Append(Resource.RstUnitGridColumnAuto);
-            stringBuilder.AppendLine();
-            stringBuilder.AppendFormat("        | 编码 {0}\r\n", snesUnit.Id);
-            if (snesUnit.MoveType == playstationUnit.MoveType)
-            {
-                stringBuilder.AppendFormat("        | 类型 {0}\r\n", TerrainAdaptionHelper.FormatMovementType(snesUnit.MoveType));
-
-            }
-            else
-            {
-                stringBuilder.AppendFormat("        | 类型 {0} ({1})\r\n", TerrainAdaptionHelper.FormatMovementType(snesUnit.MoveType), TerrainAdaptionHelper.FormatMovementType(playstationUnit.MoveType));
-            }
-            if (snesUnit.MoveRange == playstationUnit.MoveRange)
-            {
-                stringBuilder.AppendFormat("        | 移动力 {0}\r\n", snesUnit.MoveRange);
-            }
-            else
-            {
-                stringBuilder.AppendFormat("        | 移动力 {0} ({1})\r\n", snesUnit.MoveRange, playstationUnit.MoveRange);
-            }
-            stringBuilder.AppendFormat("        | 大小 {0}\r\n", snesUnit.FormatUnitSize(snesUnit.UnitSize));
-
-            stringBuilder.Append(Resource.RstUnitGridColumnAuto);
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithTextAndSpan, string.Empty, 9);
             stringBuilder.AppendLine();
 
-            var preferedPilotSnes = pilotsSnes?.FirstOrDefault(p => p.Id == preferedPilotId);
-            var preferedPilotPlayStation = pilotsPlayStation?.FirstOrDefault(p => p.Id == preferedPilotId);
-            string[] terrainAdaptionNames = new string[] { "空", "陆", "海", "宇" };
-            snesUnitTerrainAdoptions.AddRange(new byte[] {
-                    snesUnit.TerrainAdaptionAir,
-                    snesUnit.TerrainAdaptionLand,
-                    snesUnit.TerrainAdaptionSea,
-                    snesUnit.TerrainAdaptionSpace
-                });
-            playStationUnitTerrainAdoptions.AddRange(new byte[] {
-                    playstationUnit.TerrainAdaptionAir,
-                    playstationUnit.TerrainAdaptionLand,
-                    playstationUnit.TerrainAdaptionSea,
-                    playstationUnit.TerrainAdaptionSpace
-                });
-            if (preferedPilotSnes != null)
+            stringBuilder.AppendLine(Resource.RstUnitGridHeader2);
+            if (snesUnit.FirstAppearance > 0)
             {
-                snesUnitTerrainAdoptionsWithPreferedPilot.AddRange(new byte[] {
-                    (byte)((snesUnit.TerrainAdaptionAir + preferedPilotSnes.TerrainAdaptionAir)/2),
-                    (byte)((snesUnit.TerrainAdaptionLand+ preferedPilotSnes.TerrainAdaptionLand)/2),
-                    (byte)((snesUnit.TerrainAdaptionSea+ preferedPilotSnes.TerrainAdaptionSea)/2),
-                    (byte)((snesUnit.TerrainAdaptionSpace+ preferedPilotSnes.TerrainAdaptionAir)/2),
-                });
+                stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText,
+                    string.Format("登场/加入:第{0}话", snesUnit.FirstAppearance));
             }
-            if (preferedPilotPlayStation != null)
+
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText,
+                    string.Format("编码 {0:X2}", snesUnit.Id));
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText,
+                    string.Format("地址 {0:X} ({1:X})", snesUnit.BaseOffset, playstationUnit.BaseOffset));
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText,
+                    string.Format("武器首地址 {0:X} ({1:X})", snesUnit.BaseOffset + 0x20, playstationUnit.BaseOffset + 0x20));
+            
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText,
+                    string.Format("移动类型 {0}", Rom.FormatValue
+                (TerrainAdaptionSet.FormatMovementType(snesUnit.MoveType), TerrainAdaptionSet.FormatMovementType(playstationUnit.MoveType))));
+            stringBuilder.AppendLine();
+
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText,
+                    string.Format("大小 {0}", snesUnit.FormatUnitSize(snesUnit.UnitSize)));
+
+            if (snesUnit.TerrainAdaptionSet != null && playstationUnit.TerrainAdaptionSet != null)
             {
-                playStationUnitTerrainAdoptionsWithPreferedPilot.AddRange(new byte[] {
-                    (byte)((playstationUnit.TerrainAdaptionAir + preferedPilotPlayStation.TerrainAdaptionAir)/2),
-                    (byte)((playstationUnit.TerrainAdaptionLand+ preferedPilotPlayStation.TerrainAdaptionLand)/2),
-                    (byte)((playstationUnit.TerrainAdaptionSea+ preferedPilotPlayStation.TerrainAdaptionSea)/2),
-                    (byte)((playstationUnit.TerrainAdaptionSpace+ preferedPilotPlayStation.TerrainAdaptionAir)/2)
-                });
-            }
-            for (int i = 0; i < terrainAdaptionNames.Length; i++)
-            {
-                stringBuilder.AppendFormat("        | {0}", terrainAdaptionNames[i]);
-                var snesUnitTerrainAdoption = snesUnitTerrainAdoptions[i];
-                var playStationUnitTerrainAdoption = playStationUnitTerrainAdoptions[i];
-                var effectiveSnesUnitTerrainAdoption = snesUnitTerrainAdoption;
-                var effectivePlayStationUnitTerrainAdoption = playStationUnitTerrainAdoption;
-                if (preferedPilotSnes != null)
-                {
-                    effectiveSnesUnitTerrainAdoption = snesUnitTerrainAdoptionsWithPreferedPilot[i];
-                }
-                if (preferedPilotPlayStation != null)
-                {
-                    effectivePlayStationUnitTerrainAdoption = playStationUnitTerrainAdoptionsWithPreferedPilot[i];
-                }
-                if (snesUnitTerrainAdoption == playStationUnitTerrainAdoption)
-                {
-                    stringBuilder.AppendFormat("{0}", TerrainAdaptionHelper.FormatTerrainAdaption(snesUnitTerrainAdoption));
-                }
-                else
-                {
-                    stringBuilder.AppendFormat("{0} ({1})", TerrainAdaptionHelper.FormatTerrainAdaption(snesUnitTerrainAdoption),
-                        TerrainAdaptionHelper.FormatTerrainAdaption(playStationUnitTerrainAdoption));
-                }
-                if (effectiveSnesUnitTerrainAdoption != snesUnitTerrainAdoption || effectivePlayStationUnitTerrainAdoption != playStationUnitTerrainAdoption)
-                {
-                    stringBuilder.Append("→");
-                    if (effectiveSnesUnitTerrainAdoption == effectivePlayStationUnitTerrainAdoption)
-                    {
-                        stringBuilder.AppendFormat("{0}", TerrainAdaptionHelper.FormatTerrainAdaption(effectiveSnesUnitTerrainAdoption));
-                    }
-                    else
-                    {
-                        stringBuilder.AppendFormat("{0} ({1})", TerrainAdaptionHelper.FormatTerrainAdaption(effectiveSnesUnitTerrainAdoption),
-                        TerrainAdaptionHelper.FormatTerrainAdaption(effectivePlayStationUnitTerrainAdoption));
-                    }
-                }
+                var formattedEffectiveTerrainWeaponAdaption = TerrainAdaptionSet.FormatEffectiveTerrainWeaponAdaption(snesUnit.TerrainAdaptionSet
+                    , playstationUnit.TerrainAdaptionSet, effectiveSnesUnitTerrainAdoptions, effectivePlayStationUnitTerrainAdoptions);
+
+                stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText,
+                    string.Format("地形适应 {0}", string.Join(string.Empty, formattedEffectiveTerrainWeaponAdaption)));
                 stringBuilder.AppendLine();
             }
-            //Debug.Assert(snesUnit.HasAfterimage == playstationUnit.HasAfterimage);
-            if (snesUnit.HasAfterimage)
+            if (snesPreferredPilot != null)
             {
-                stringBuilder.AppendLine("        | 分身");
+                var preferedPilotName = snesPreferredPilot.Name;
+                var preferedPilotLabel = string.Format("srw4_pilot_{0}", snesPreferredPilot.GetLabel());
+
+                stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText,
+                    string.Format("地形参照  \\ :ref:`{0} <{1}>`\\ ", snesPreferredPilot.Name, preferedPilotLabel));
+                stringBuilder.AppendLine();
+
+                stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText,Pilot.RstGetPilotIcon(snesPreferredPilot.Id));  
+            }
+            List<string> unitSkills = GetUnitSkillDescriptions(snesUnit, playstationUnit);
+            if (unitSkills.Count > 0)
+            {
+                stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText,
+                    string.Join(", ", unitSkills));
+                stringBuilder.AppendLine();
+            }
+            stringBuilder.AppendLine(Resource.RstUnitGridHeader);
+
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, "属性");
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, "值");
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, "己偏差值");
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, "全偏差值");
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, "属性");
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, "值");
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, "己偏差值");
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, "全偏差值");
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, "属性");
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, "值");
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, "己偏差值");
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, "全偏差值");
+            stringBuilder.Append(Resource.RstUnitGridColumnBreak);           
+
+            WriteAttributeWithTScore(stringBuilder,"HP", unitTScoreParametersSet,
+                UnitTScoreParameterIndex.HP,
+                snesUnit.HP,
+                playstationUnit.HP
+                );
+
+            WriteAttributeWithTScore(stringBuilder, "EN", unitTScoreParametersSet,
+                UnitTScoreParameterIndex.Energy,
+                snesUnit.Energy,
+                playstationUnit.Energy
+                );
+
+            WriteAttributeWithTScore(stringBuilder, "装甲", unitTScoreParametersSet,
+                UnitTScoreParameterIndex.Armor,
+                snesUnit.Armor ,
+                playstationUnit.Armor
+                );
+
+            stringBuilder.Append(Resource.RstUnitGridColumnBreak);
+
+            WriteAttributeWithTScore(stringBuilder, "运动性", unitTScoreParametersSet,
+                UnitTScoreParameterIndex.Mobility,
+                snesUnit.Mobility ,
+                playstationUnit.Mobility
+                );
+
+            WriteAttributeWithTScore(stringBuilder, "限界", unitTScoreParametersSet,
+                UnitTScoreParameterIndex.Limit,
+                snesUnit.Limit,
+                playstationUnit.Limit
+                );
+
+            WriteAttributeWithTScore(stringBuilder, "移动力", unitTScoreParametersSet,
+                UnitTScoreParameterIndex.MoveRange,
+                snesUnit.MoveRange,
+                playstationUnit.MoveRange
+                );
+
+            stringBuilder.Append(Resource.RstUnitGridColumnBreak);
+
+            WriteAttributeWithTScore(stringBuilder, "经验值", unitTScoreParametersSet,
+                UnitTScoreParameterIndex.Experience,
+                snesUnit.Experience,
+                playstationUnit.Experience
+                );
+
+            WriteAttributeWithTScore(stringBuilder, "价值", unitTScoreParametersSet,
+                UnitTScoreParameterIndex.Gold,
+                snesUnit.Gold,
+                playstationUnit.Gold
+                );
+
+            WriteAttributeWithTScore(stringBuilder, "修理费", unitTScoreParametersSet,
+                UnitTScoreParameterIndex.RepairCost,
+                snesUnit.RepairCost,
+                playstationUnit.RepairCost
+                );
+        }
+
+        private static List<string> GetUnitSkillDescriptions(Unit snesUnit, Unit playstationUnit)
+        {
+            var result= new List<string>();
+            if (snesUnit.HasAfterimage == playstationUnit.HasAfterimage)
+            {
+                if (snesUnit.HasAfterimage)
+                    result.Add("分身");
+            }
+            else
+            {
+                if (snesUnit.HasAfterimage)
+                    result.Add("分身 (仅Snes)");
+                else
+                    result.Add("分身 (仅PlayStation)");
+
             }
             //Debug.Assert(snesUnit.HasShield == playstationUnit.HasShield);
             if (snesUnit.HasShield)
             {
-                stringBuilder.AppendLine("        | 盾装備");
+                result.Add("盾装備");
             }
+            Debug.Assert(snesUnit.HasShield == playstationUnit.HasShield);
             //Debug.Assert(snesUnit.HasSword == playstationUnit.HasSword);
             if (snesUnit.HasSword || playstationUnit.HasSword)
             {
-                stringBuilder.AppendLine("        | 剣装備");
+                result.Add("剣装備");
             }
-            //Debug.Assert(snesUnit.HasEnergyRecovery == playstationUnit.HasEnergyRecovery);
+            Debug.Assert(snesUnit.HasSword == playstationUnit.HasSword);
             if (snesUnit.HasEnergyRecovery)
             {
-                switch (snesUnit.HPRecoveryType)
-                {
-                    case 0x04:
-                        stringBuilder.AppendLine("        | HP恢復(小)");
-                        break;
-                    case 0x08:
-                        stringBuilder.AppendLine("        | HP恢復(大)");
-                        break;
-                }
+                result.Add("EN恢復");
+
             }
-            //Debug.Assert(snesUnit.RageAndDetonateImmune == playstationUnit.RageAndDetonateImmune);
+            switch (snesUnit.HPRecoveryType)
+            {
+                case 0x04:
+                    result.Add("HP恢復(小)");
+                    break;
+                case 0x08:
+                    result.Add("HP恢復(大)");
+                    break;
+            }
+            Debug.Assert(snesUnit.HasEnergyRecovery == playstationUnit.HasEnergyRecovery);
+            Debug.Assert(snesUnit.HPRecoveryType == playstationUnit.HPRecoveryType);
             if (snesUnit.RageAndDetonateImmune)
             {
-                stringBuilder.AppendLine("        | 激怒/自爆/てかげん無効");
+                result.Add("激怒/自爆/てかげん無効");
             }
-           // Debug.Assert(snesUnit.BeamCoatType == playstationUnit.BeamCoatType);
+            Debug.Assert(snesUnit.RageAndDetonateImmune == playstationUnit.RageAndDetonateImmune);
             switch (snesUnit.BeamCoatType)
             {
                 case 0x02:
-                    stringBuilder.AppendLine("        | ビームコート");
+                    result.Add("ビームコート");
                     break;
                 case 0x04:
-                    stringBuilder.AppendLine("        | Iフィールド");
+                    result.Add("Iフィールド");
                     break;
                 case 0x06:
-                    stringBuilder.AppendLine("        | オーラバリア");
+                    result.Add("オーラバリア");
                     break;
                 case 0x08:
-                    stringBuilder.AppendLine("        | ビームバリア");
+                    result.Add("ビームバリア");
                     break;
             }
-            stringBuilder.AppendLine();
-
-            stringBuilder.Append(Resource.RstUnitGridColumnAuto);
-            stringBuilder.AppendLine();
-
+            Debug.Assert(snesUnit.BeamCoatType == playstationUnit.BeamCoatType);
+            return result;
         }
+
+        private static void WriteAttributeWithTScore(StringBuilder stringBuilder, string dataType, UnitTScoreParametersSet unitTScoreParametersSet,
+            UnitTScoreParameterIndex attributeIndex, int snesAttribute, int playStationAttribute)
+        {
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, dataType);
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, Rom.FormatValue(
+                attributeIndex== UnitTScoreParameterIndex.Armor?snesAttribute * 10 : snesAttribute
+                , attributeIndex == UnitTScoreParameterIndex.Armor ? playStationAttribute * 10: playStationAttribute));
+
+
+            var snesTScore = Math.Round(unitTScoreParametersSet.SnesOwned.GetTScoreParameter(attributeIndex).CalculateTScore(snesAttribute));
+            var playStationTScore = Math.Round(unitTScoreParametersSet.PlayStationOwned.GetTScoreParameter(attributeIndex).CalculateTScore(playStationAttribute));
+
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, Rom.FormatValue(snesTScore, playStationTScore));
+
+
+            snesTScore = Math.Round(unitTScoreParametersSet.SnesEncountered.GetTScoreParameter(attributeIndex).CalculateTScore(snesAttribute));
+            playStationTScore = Math.Round(unitTScoreParametersSet.PlayStationEncountered.GetTScoreParameter(attributeIndex).CalculateTScore(playStationAttribute));
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, Rom.FormatValue(snesTScore, playStationTScore));
+        }
+
     }
 
 }

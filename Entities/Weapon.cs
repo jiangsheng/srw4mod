@@ -32,14 +32,46 @@ namespace Entities
         public byte UpgradeCostType { get; set; }
         public byte MinRange { get; set; }
         public byte MaxRange { get; set; }
-        public byte TerrainAdaption { get; set; }
+        public TerrainAdaptionSet? TerrainAdaptionSet { get; set; }
+        public byte TerrainAdaptionAir
+        {
+            get
+            {
+                if (TerrainAdaptionSet == null) throw new ArgumentNullException(nameof(TerrainAdaptionSet));
+                return this.TerrainAdaptionSet.GetTerrainAdaptionByIndex(TerrainAdaptionSetIndex.Air);
+            }
+        }
+        public byte TerrainAdaptionSea
+        {
+            get
+            {
+                if (TerrainAdaptionSet == null) throw new ArgumentNullException(nameof(TerrainAdaptionSet));
+                return this.TerrainAdaptionSet.GetTerrainAdaptionByIndex(TerrainAdaptionSetIndex.Sea);
+            }
+        }
+        public byte TerrainAdaptionLand
+        {
+            get
+            {
+                if (TerrainAdaptionSet == null) throw new ArgumentNullException(nameof(TerrainAdaptionSet));
+                return this.TerrainAdaptionSet.GetTerrainAdaptionByIndex(TerrainAdaptionSetIndex.Land);
+            }
+        }
+        public byte TerrainAdaptionSpace
+        {
+            get
+            {
+                if (TerrainAdaptionSet == null) throw new ArgumentNullException(nameof(TerrainAdaptionSet));
+                return this.TerrainAdaptionSet.GetTerrainAdaptionByIndex(TerrainAdaptionSetIndex.Space);
+            }
+        }
         public byte MaxAmmo { get; set; }
         public byte EnergyCost { get; set; }
         public byte RequiredWill { get; set; }
         public byte RequiredSkill { get; set; }
         [Ignore]
         public bool HasAssignedOwner { get; set; }
-        public string? FirstOwner { get; set; }
+        public Unit? FirstOwner { get; set; }
 
         public static List<Weapon>? Parse(byte[] weaponData, int headerStartOffset, int offsetBase, int footerOffset, List<WeaponMetaData> weaponMetaData)
         {
@@ -128,7 +160,8 @@ namespace Entities
             weapon.MaxRange = weaponData[offset++];
             Debug.Assert(weapon.MaxRange < 15);
             //offset b
-            weapon.TerrainAdaption = weaponData[offset++];
+            byte terrainAdaptionByte= weaponData[offset++];
+            weapon.TerrainAdaptionSet= TerrainAdaptionSet.FromWeaponAdaptions(terrainAdaptionByte);
             //offset c
             weapon.MaxAmmo = weaponData[offset++];
             Debug.Assert(weapon.MaxAmmo <= 50);
@@ -142,27 +175,7 @@ namespace Entities
             weapon.RequiredSkill = weaponData[offset++];
             Debug.Assert(weapon.RequiredSkill < 0x40);
             return weapon;
-        }
-        private static string FormatTerrainAdaption(byte terrainAdaption)
-        {
-            StringBuilder sb = new StringBuilder();
-            byte[] terrainAdaptions = new byte[4];
-            terrainAdaptions[2] = (byte)(terrainAdaption / 64);//sea
-            terrainAdaptions[1] = (byte)((terrainAdaption / 16) & 0x03);//land
-            terrainAdaptions[0] = (byte)((terrainAdaption / 4) & 0x03);//air
-            terrainAdaptions[3] = (byte)(terrainAdaption & 0x03);//space
-            for (int i = 0; i < 4; i++)
-            {
-                switch (terrainAdaptions[i])
-                {
-                    case 3: sb.Append("A"); break;
-                    case 2: sb.Append("B"); break;
-                    case 1: sb.Append("C"); break;
-                    case 0: sb.Append("-"); break;
-                }
-            }
-            return sb.ToString();
-        }
+        }        
         private static string FormatPilotQuote(byte pilotQuote)
         {
             switch (pilotQuote)
@@ -200,7 +213,7 @@ namespace Entities
             stringBuilder.AppendFormat(", 程: {0}~{1}", MinRange, MaxRange);
             stringBuilder.AppendFormat(", 命中补正: {0}", AccuracyBonus);
             stringBuilder.AppendFormat(", 改造价格类型: {0}", UpgradeCostType);
-            stringBuilder.AppendFormat(", 地形适应: {0:X}:{1}", BaseOffset + 0xb, FormatTerrainAdaption(TerrainAdaption));
+            stringBuilder.AppendFormat(", 地形适应: {0:X}:{1}", BaseOffset + 0xb, TerrainAdaptionSet?.ToString());
             stringBuilder.AppendFormat(", 暴击补正: {0}", CriticalHitRateBonus);
 
             if (MaxAmmo > 0)
@@ -214,7 +227,7 @@ namespace Entities
             
 
             if (HasAssignedOwner)
-                stringBuilder.AppendFormat("\t首装备: {0:X}", FirstOwner);
+                stringBuilder.AppendFormat("\t首装备: {0:X}", FirstOwner?.Name);
             return stringBuilder.ToString();
         }
 
@@ -222,22 +235,7 @@ namespace Entities
         {
             var row = new StringBuilder();
             row.AppendLine(string.Format("   * - {0:X2}", this.Id));
-            row.Append(string.Format("     - {0}", this.Name));
-            if (IsMelee)
-                row.Append("🤛");
-            if (IsMap)
-                row.Append("🗺️");
-            if(IsPortable)
-                row.Append("Ⓟ");
-            if (IsRepair)
-                row.Append("🔧");
-            if (IsResupply)
-                row.Append("🔄");
-            if (IsDeflectable)
-                row.Append("⚔");
-            if (IsBeam)
-                row.Append("Ⓑ");
-
+            row.Append(string.Format("     - {0}", Name));
             row.AppendLine();
             row.AppendLine(string.Format("     - {0}", Damage));
             if(MaxRange== MinRange)
@@ -246,7 +244,7 @@ namespace Entities
                 row.AppendLine(string.Format("     - {0}~{1}", MinRange, MaxRange));
             row.AppendLine(string.Format("     - {0}", AccuracyBonus));
             row.AppendLine(string.Format("     - {0}", CriticalHitRateBonus));
-            row.AppendLine(string.Format("     - {0}", FormatTerrainAdaption(TerrainAdaption)));
+            row.AppendLine(string.Format("     - {0}", TerrainAdaptionSet?.ToString()));
             if(MaxAmmo>0)
                 row.AppendLine(string.Format("     - {0}", MaxAmmo));
             else
@@ -260,21 +258,43 @@ namespace Entities
             else
                 row.AppendLine("     - ");
             if(RequiredSkill>0)
-                row.AppendLine(string.Format("     - {0}", PilotSpiritCommandsOrSkill.Format(0,RequiredSkill,0)));
+                row.AppendLine(string.Format("     - {0}", PilotSpiritCommandsOrSkill.Format(0,RequiredSkill,0,false)));
             else
                 row.AppendLine("     - ");
             row.AppendLine(string.Format("     - {0:X}", UpgradeCostType));
             row.AppendLine(string.Format("     - {0}", FormatPilotQuote(PilotQuote)));  
-            if (string.IsNullOrEmpty(FirstOwner))
+            if (FirstOwner==null)
             {
                 row.AppendLine("     - ");
             }
             else
             {
-                row.AppendLine(string.Format("     - {0}", FirstOwner));
+                row.AppendLine(string.Format("     - \\ :ref:`{0} <srw4_unit_{1}>`\\ ", FirstOwner.Name, RstHelper.GetLabelName(FirstOwner.EnglishName)));
             }
 
             return row.ToString();
+        }
+
+        public string GetNameWithAttributes()
+        {
+            StringBuilder stringBuilder
+                = new StringBuilder();
+            stringBuilder.Append(Name);
+            if(IsMelee)
+                stringBuilder.Append("🤛");
+            if (IsDeflectable)
+                stringBuilder.Append("⚔");
+            if (IsBeam)
+                stringBuilder.Append("Ⓑ");
+            if (IsPortable)
+                stringBuilder.Append("Ⓟ");
+            if (IsMap)
+                stringBuilder.Append("🗺️");
+            if (IsRepair)
+                stringBuilder.Append("🔧");
+            if (IsResupply)
+                stringBuilder.Append("🔄");
+            return stringBuilder.ToString();
         }
     }
 }

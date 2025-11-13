@@ -17,6 +17,7 @@ namespace Entities
             Affiliations.Add(new Affiliation { Name = "敌军", ShortName = "敌", Label = "enemy" });
             Affiliations.Add(new Affiliation { Name = "盟军", ShortName = "盟", Label = "ally" });
             Affiliations.Add(new Affiliation { Name = "中立", ShortName = "中", Label = "neutral" });
+            Affiliations.Add(new Affiliation { Name = "未登场", ShortName = "没", Label = "dead_data" });
         }
 
         public string? Name { get; set; }
@@ -25,25 +26,21 @@ namespace Entities
 
         public string? Label { get; set; }
 
-        public static List<Affiliation>? Affiliations { get; set; }
+        public static List<Affiliation> Affiliations { get; set; }
 
 
         public void RstAppendUnits(
             StringBuilder stringBuilder,
             List<UnitMetaData> units,
-            string franchise,
-            string affiliationComment,
-            List<Unit> unitsSnes,
-            List<Unit>? unitsPlayStation,
-            List<Pilot>? pilotsSnes,
-            List<Pilot>? pilotsPlayStation,
-            List<Weapon>? weaponSnes,
-            List<Weapon>? weaponPlayStation)
+            string franchiseLabel,
+            Rom snesRom, Rom playstationRom,
+            Dictionary<string, string> comments,
+            UnitTScoreParametersSet unitTScoreParametersSet)
         {
             RstHelper.AppendHeader(stringBuilder, $"{Name}机体", '-');
-            stringBuilder.AppendLine($".. _srw4_units_{franchise}_{Label}_commentBegin:");
-            stringBuilder.AppendLine(affiliationComment);
-            stringBuilder.AppendLine($".. _srw4_units_{franchise}_{Label}_commentEnd:");
+            stringBuilder.AppendLine($".. _srw4_units_{franchiseLabel}_{Label}_commentBegin:");
+            stringBuilder.AppendLine(RstHelper.GetComments(comments, string.Format("_srw4_units_{0}_{1}", franchiseLabel, Label)));
+            stringBuilder.AppendLine($".. _srw4_units_{franchiseLabel}_{Label}_commentEnd:");
             stringBuilder.AppendLine();
 
             foreach (var unit in units)
@@ -55,18 +52,27 @@ namespace Entities
                     {
                         foreach (int unitId in groupInfo.MemberIds)
                         {
-                            Unit.RstAppendUnit(stringBuilder, unitId, units, string.Empty, unitsSnes,
-                                unitsPlayStation,
-                                pilotsSnes,
-                                pilotsPlayStation, weaponSnes, weaponPlayStation);
+                            Unit.RstAppendUnit(stringBuilder, unitId, units, string.Empty, snesRom, playstationRom, comments, unitTScoreParametersSet);
                         }
                     }
                 }
                 else
-                    Unit.RstAppendUnit(stringBuilder, unit.Id, units,string.Empty, unitsSnes,
-                        unitsPlayStation,
-                        pilotsSnes,
-                        pilotsPlayStation, weaponSnes, weaponPlayStation);
+                    Unit.RstAppendUnit(stringBuilder, unit.Id, units,string.Empty,  snesRom,  playstationRom, comments, unitTScoreParametersSet);
+            }
+        }
+        public void RstAppendPilots(StringBuilder stringBuilder, List<PilotMetaData> affiliationsPilots, 
+            string franchiseLabel, Rom snesRom, Rom playstationRom,
+            Dictionary<string, string> comments, PilotTScoreParametersSet pilotTScoreParametersSet)
+        {
+            RstHelper.AppendHeader(stringBuilder, $"{Name}人物", '-');
+            stringBuilder.AppendLine($".. _srw4_pilots_{franchiseLabel}_{Label}_commentBegin:");
+            stringBuilder.AppendLine(RstHelper.GetComments(comments, string.Format("_srw4_pilots_{0}_{1}", franchiseLabel, Label)));
+            stringBuilder.AppendLine($".. _srw4_pilots_{franchiseLabel}_{Label}_commentEnd:");
+            stringBuilder.AppendLine();
+
+            foreach (var pilot in affiliationsPilots)
+            {
+                Pilot.RstAppendPilot(stringBuilder, pilot.Id, affiliationsPilots, string.Empty, snesRom, playstationRom, comments, pilotTScoreParametersSet);
             }
         }
 

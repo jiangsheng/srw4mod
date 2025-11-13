@@ -24,31 +24,56 @@ namespace Entities
         public int AcquireAtLevel{ get; set; }
         public int BaseAddress { get; set; }
         static List<string> SpiritCommandNames = new List<string>();
-        public static string Format(int baseAddress,byte spiritCommandsOrSkill, byte previousSpiritCommandsOrSkill)
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append(Format(this.BaseAddress, this.SpiritCommandsOrSkill, 0, false));
+            sb.Append(string.Format(" {0}", this.AcquireAtLevel));
+            return sb.ToString();
+        }
+        public static string Format(int baseAddress,byte spiritCommandsOrSkill, byte previousSpiritCommandsOrSkill, bool withAddress)
         {
             if (spiritCommandsOrSkill >= 0x01 && spiritCommandsOrSkill <= 0x1E)
             {
-                return string.Format("{0:X}: {1}", baseAddress, SpiritCommandNames[spiritCommandsOrSkill]);
+                if(withAddress)
+                    return string.Format("{0:X}: {1}", baseAddress, SpiritCommandNames[spiritCommandsOrSkill]);
+                else
+                    return SpiritCommandNames[spiritCommandsOrSkill];
             }
             if (spiritCommandsOrSkill >= 0x20 && spiritCommandsOrSkill <= 0x27)
             {
                 if (previousSpiritCommandsOrSkill >= 0x20 && previousSpiritCommandsOrSkill <= 0x27)
                 {
-                    return string.Format("{0:X}:Ｌ{1}", baseAddress, spiritCommandsOrSkill - 0x20 + 1);
+                    if (withAddress)
+                        return string.Format("{0:X}:Ｌ{1}", baseAddress, spiritCommandsOrSkill - 0x20 + 1);
+                    else
+                        return string.Format("Ｌ{0}", spiritCommandsOrSkill - 0x20 + 1);
                 }
                 else
                 {
-                    return string.Format("{0:X}:シールド防御Ｌ{1}", baseAddress, spiritCommandsOrSkill - 0x20 + 1);
+                    if (withAddress)
+                        return string.Format("{0:X}:シールド防御Ｌ{1}", baseAddress, spiritCommandsOrSkill - 0x20 + 1);
+                    else
+                        return string.Format("シールド防御Ｌ{0}", spiritCommandsOrSkill - 0x20 + 1);
+
                 }
             }
             if (spiritCommandsOrSkill >= 0x28 && spiritCommandsOrSkill <= 0x2F)
             {
                 if (previousSpiritCommandsOrSkill >= 0x28 && previousSpiritCommandsOrSkill <= 0x2f)
                 {
-                    return string.Format("{0:X}:Ｌ{1}", baseAddress, spiritCommandsOrSkill - 0x28 + 1);
+                    if (withAddress)
+                        return string.Format("{0:X}:Ｌ{1}", baseAddress, spiritCommandsOrSkill - 0x28 + 1);
+                    else
+                        return string.Format("Ｌ{0}", spiritCommandsOrSkill - 0x28 + 1);
                 }
                 else
-                    return string.Format("{0:X}:切り払いＬ{1}", baseAddress, spiritCommandsOrSkill - 0x28 + 1);
+                {
+                    if (withAddress)
+                        return string.Format("{0:X}:切り払いＬ{1}", baseAddress, spiritCommandsOrSkill - 0x28 + 1);
+                    else
+                        return string.Format("切り払いＬ{0}", spiritCommandsOrSkill - 0x28 + 1);
+                }
             }
             string spiritCommandsOrSkillString = string.Empty;
             switch (spiritCommandsOrSkill)
@@ -66,7 +91,11 @@ namespace Entities
                 default:
                     spiritCommandsOrSkillString = spiritCommandsOrSkill.ToString(); break;
             }
-            return string.Format("{0:X}: {1}", baseAddress, spiritCommandsOrSkillString);
+            if (withAddress)
+                return string.Format("{0:X}: {1}", baseAddress, spiritCommandsOrSkillString);
+            else
+                return spiritCommandsOrSkillString;
+
         }
     }
 }

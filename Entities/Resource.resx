@@ -119,28 +119,70 @@
   </resheader>
   <data name="RstUnitGridColumnAuto" xml:space="preserve">
     <value>    .. grid-item::
-        :columns: auto   </value>
+        :columns: auto
+</value>
+  </data>
+  <data name="RstUnitGridColumnAutoWithText" xml:space="preserve">
+    <value>    .. grid-item::{0}
+        :columns: auto
+</value>
+  </data>
+  <data name="RstUnitGridColumnAuto2" xml:space="preserve">
+    <value>            .. grid-item:: 
+                :columns: auto
+
+</value>
+  </data>
+  <data name="RstUnitGridColumnAuto2WithText" xml:space="preserve">
+    <value>            .. grid-item:: {0}
+                :columns: auto
+
+</value>
   </data>
   <data name="RstUnitGridColumnBreak" xml:space="preserve">
     <value>    .. grid-item::
-        :class: flex-break</value>
+        :class: flex-break
+</value>
+  </data>
+  <data name="RstUnitGridColumnBreak2" xml:space="preserve">
+    <value>            .. grid-item::
+                :class: flex-break
+
+</value>
   </data>
   <data name="RstUnitGridColumnWithText" xml:space="preserve">
-    <value>.. grid-item:: {0}</value>
+    <value>    .. grid-item:: {0}
+</value>
+  </data>
+  <data name="RstUnitGridColumnWithText2" xml:space="preserve">
+    <value>            .. grid-item::{0}</value>
   </data>
   <data name="RstUnitGridColumnWithTextAndSpan" xml:space="preserve">
     <value>    .. grid-item:: {0}
-        :columns: {1}</value>
+        :columns: {1}
+</value>
+  </data>
+  <data name="RstUnitGridColumnWithTextAndSpan2" xml:space="preserve">
+    <value>          .. grid-item:: {0}
+                :columns: {1}
+
+</value>
   </data>
   <data name="RstUnitGridHeader" xml:space="preserve">
     <value>
 .. grid:: 
-    :gutter: 3
+    :gutter: 0
     :margin: 0
     :padding: 0
     :outline:
+</value>
+  </data>
+  <data name="RstUnitGridHeader2" xml:space="preserve">
+    <value>        .. grid:: 
+            :gutter: 0
+            :margin: 0
+            :padding: 0
 
-    .. grid-item::
-        :columns: auto   </value>
+</value>
   </data>
 </root>

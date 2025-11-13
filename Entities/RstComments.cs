@@ -6,4 +6,9 @@ using System.Threading.Tasks;
 
 namespace Entities
 {
+    public class RstComments
+    {
+        public string? Label { get; set; }
+        public string? Content{ get; set; }
+    }
 }

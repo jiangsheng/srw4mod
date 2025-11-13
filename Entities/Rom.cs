@@ -14,15 +14,16 @@ namespace Entities
     public class Rom
     {
         public List<Pilot>? Pilots { get; set; }
-        public List<Unit>? Units { get; set; }    
+        public List<Unit>? Units { get; set; }
         public List<Weapon>? Weapons { get; set; }
         bool IsPlayStation { get; set; }
         public static Rom Parse(byte[] romData, List<WeaponMetaData> weaponMetaData, List<UnitMetaData> unitMetaData, List<PilotMetaData> pilotMetaData,
             int weaponHeaderStartOffset, int weaponOffsetBase, int weaponFooterOffset, int unitHeaderStartOffset, int unitOffsetBase, int unitFooterOffset, int pilotHeaderOffset, int pilotDataOffset, bool isPlayStation)
         {
-            var result=new Rom();
+            var result = new Rom();
             result.IsPlayStation = isPlayStation;
             result.Weapons = Weapon.Parse(romData, weaponHeaderStartOffset, weaponOffsetBase, weaponFooterOffset, weaponMetaData);
+            if (result.Weapons == null) throw new ArgumentNullException("Rom.Weapons is null");
             result.Units = Unit.Parse(romData, unitHeaderStartOffset, unitOffsetBase, unitFooterOffset, unitMetaData, result.Weapons);
             result.Pilots = Pilot.Parse(romData, pilotHeaderOffset, pilotDataOffset, pilotMetaData, isPlayStation);
             return result;
@@ -30,7 +31,7 @@ namespace Entities
 
         public void WriteCsv()
         {
-            var prefix= IsPlayStation ? "psx" : "snes";
+            var prefix = IsPlayStation ? "psx" : "snes";
             WriteCsv(string.Format("{0}Weapons.csv", prefix), Weapons);
             WriteCsv(string.Format("{0}Units.csv", prefix), Units);
             WriteCsv(string.Format("{0}Pilots.csv", prefix), Pilots);
@@ -38,26 +39,28 @@ namespace Entities
             {
                 //write fixed metadata
                 WriteCsv(string.Format("Franchise.csv"), Franchise.Franchises);
-                var units = this.Units.Select(u => new UnitMetaData
+                var units = this.Units?.Select(u => new UnitMetaData
                 {
                     Id = u.Id,
-                    Affiliation = u.Affiliation,    
-                    FranchiseName=u.FranchiseName,
+                    Affiliation = u.Affiliation,
+                    FranchiseName = u.FranchiseName,
                     Name = u.Name,
                     EnglishName = u.EnglishName,
-                    PreferredPilotId=u.PreferredPilotId
+                    PreferredPilotId = u.PreferredPilotId
+                    , FirstAppearance = u.FirstAppearance,
                 }).ToList();
                 WriteCsv("UnitMetaData.csv", units);
-                var pilots = this.Pilots.Select(p => new PilotMetaData
+                var pilots = this.Pilots?.Select(p => new PilotMetaData
                 {
                     Id = p.Id,
                     Name = p.Name,
                     FranchiseName = p.FranchiseName,
                     Affiliation = p.Affiliation,
                     EnglishName = p.EnglishName,
+                    FirstAppearance = p.FirstAppearance,
                 }).ToList();
                 WriteCsv("PilotMetaData.csv", pilots);
-                var weapons = this.Weapons.Select(p => new WeaponMetaData
+                var weapons = this.Weapons?.Select(p => new WeaponMetaData
                 {
                     Id = p.Id,
                     Name = p.Name
@@ -78,19 +81,19 @@ namespace Entities
         public void WriteRst()
         {
             var postfix = IsPlayStation ? "ps" : "snes";
-            WriteRst(string.Format("unit_data_{0}.rst", postfix), 
+            WriteRst(string.Format("unit_data_{0}.rst", postfix),
                 IsPlayStation ? "https://jiangsheng.net/build/html/_sources/games/srw4/units/unit_data_ps.rst.txt"
                 : "https://jiangsheng.net/build/html/_sources/games/srw4/units/unit_data_snes.rst.txt"
-                ,Units
+                , Units??new List<Unit>()
                 );
             WriteRst(string.Format("pilot_data_{0}.rst", postfix),
                 IsPlayStation ? "https://jiangsheng.net/build/html/_sources/games/srw4/pilots/pilot_data_ps.rst.txt"
                 : "https://jiangsheng.net/build/html/_sources/games/srw4/pilots/pilot_data_snes.rst.txt"
-                , Pilots);
+                , Pilots ?? new List<Pilot>());
             WriteRst(string.Format("weapon_data_{0}.rst", postfix),
                  IsPlayStation ? "https://jiangsheng.net/build/html/_sources/games/srw4/units/weapon_data_ps.rst.txt"
                 : "https://jiangsheng.net/build/html/_sources/games/srw4/units/weapon_data_snes.rst.txt"
-                , Weapons);           
+                , Weapons ?? new List<Weapon>());
         }
 
         void WriteRst<T>(string fileName, string rstUrl, List<T> data) where T : IRstFormatter
@@ -101,7 +104,7 @@ namespace Entities
                 var lines = fileTemplate.Split(new[] { '\n' });
                 int bodyLine = -1;
                 int lastRawHtmlLine = -1;
-                for (int i= 0; i<lines.Length; i++ )
+                for (int i = 0; i < lines.Length; i++)
                 {
                     var line = lines[i];
                     if (string.Compare(line, "   * - 01", StringComparison.Ordinal) == 0)
@@ -114,7 +117,7 @@ namespace Entities
                     }
                 }
                 var stringBuilder = new StringBuilder();
-                for (int i= 0; i<bodyLine; i++ )
+                for (int i = 0; i < bodyLine; i++)
                 {
                     stringBuilder.AppendLine(lines[i]);
                 }
@@ -124,7 +127,7 @@ namespace Entities
                 }
                 if (lastRawHtmlLine != -1)
                 {
-                    for(int i= lastRawHtmlLine; i< lines.Length; i++ )
+                    for (int i = lastRawHtmlLine; i < lines.Length; i++)
                     {
                         if (i <= lines.Length - 1)
                         {
@@ -137,6 +140,19 @@ namespace Entities
                     }
                 }
                 File.WriteAllText(fileName, stringBuilder.ToString(), Encoding.UTF8);
+            }
+        }
+
+        public static string FormatValue<T>(T snesValue, T playstationValue)
+        {
+            if (EqualityComparer<T>.Default.Equals(snesValue, playstationValue))
+            {
+                return snesValue?.ToString() ?? string.Empty;
+            }
+            else
+            {
+                return string.Format("{0} ({1})", snesValue?.ToString() ?? string.Empty, playstationValue?.ToString() ?? string.Empty);
+
             }
         }
     }

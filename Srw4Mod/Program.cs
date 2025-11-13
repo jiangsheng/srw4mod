@@ -9,6 +9,7 @@ using System.Globalization;
 using System.Net;
 using System.Runtime.Intrinsics.Arm;
 using System.Text;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Srw4Mod
 {
@@ -56,6 +57,8 @@ namespace Srw4Mod
             byte[] playStationData=File.ReadAllBytes(playStationDataPath);
             Franchise.Franchises= LoadFranchises();
 
+            var comments = DownloadComments(Franchise.Franchises);
+
             Rom playstationRom = Rom.Parse(playStationData, weapons, units, pilots, 
                 0x2E800, 0x2E800, 0x2D90
                 , 0x26000, 0x26000, 0x361A
@@ -70,6 +73,19 @@ namespace Srw4Mod
             snesRom.WriteCsv();
             playstationRom.WriteRst();
             snesRom.WriteRst();
+            var snesRomUnits = snesRom.Units;
+            var playstationRomUnits = playstationRom.Units;
+            if (snesRomUnits == null)
+            {
+                throw new ArgumentNullException(nameof(snesRomUnits));
+            }
+            if (playstationRomUnits == null)
+            {
+                throw new ArgumentNullException(nameof(playstationRomUnits));
+            }
+
+            Debug.Assert(snesRomUnits.Where(u => u.Id == 1).First().PreferredPilotId == 250);
+            Debug.Assert(playstationRomUnits.Where(u => u.Id == 1).First().PreferredPilotId == 250);
             var unitsFolder = Path.Combine(Environment.CurrentDirectory, "units");
             var pilotsFolder = Path.Combine(Environment.CurrentDirectory, "pilots");
             if(!Directory.Exists(unitsFolder))
@@ -80,19 +96,109 @@ namespace Srw4Mod
             {
                 Directory.CreateDirectory(pilotsFolder);
             }
+
+            Franchise.WriteUnitsRst(unitsFolder, units,
+                    snesRom, playstationRom, comments);
+
+            Franchise.WritePilotRst(pilotsFolder, pilots, snesRom, playstationRom, comments);
+
+           
+            //DumpData(playstationRom.Pilots);
+            //DumpData(playstationRom.Units);
+            //DumpData(playstationRom.Weapons);
+        }
+
+
+        private static Dictionary<string, string> DownloadComments(List<Franchise> franchises)
+        {
             
-            foreach (var franchise in Franchise.Franchises)
+            Dictionary<string, string> result = new Dictionary<string,string>();
+            if (File.Exists("comments.csv"))
             {
-                string franchiseComment = string.Empty;
-                franchise.WriteUnitRst(unitsFolder,units,
-                    snesRom.Units,playstationRom.Units,
-                    snesRom.Pilots, playstationRom.Pilots
-                    ,snesRom.Weapons,playstationRom.Weapons, franchiseComment);
-                franchise.WritePilotRst(pilotsFolder,units, snesRom.Pilots, playstationRom.Pilots);
+                using (var reader = new StreamReader("comments.csv", Encoding.UTF8))
+                using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+                {
+                    var rstCommentsFromCsv = csv.GetRecords<RstComments>();
+                    foreach (var rstComment in rstCommentsFromCsv)
+                    {
+                        if(rstComment.Label!=null && rstComment.Content!=null)
+                            result.Add(rstComment.Label, rstComment.Content);
+                    }
+                    if (result.Keys.Count > 0)
+                    {
+                        return result;
+                    }
+                }
             }
-            DumpData(playstationRom.Pilots);
-            DumpData(playstationRom.Units);
-            DumpData(playstationRom.Weapons);
+            
+            var baseUrl = "https://jiangsheng.net/build/html/_sources/games/srw4/units/";
+            var franchiseNames= franchises.Select(x => x.FileName).Distinct().ToList();
+            DownloadComments(result, baseUrl, franchiseNames);
+            baseUrl = "https://jiangsheng.net/build/html/_sources/games/srw4/pilots/";
+            franchiseNames = franchises.Where(f => f.FileName != "mobile_suit_gundam_sentinel"
+            && f.FileName != "mobile_suit_gundam_hathaway").Select(x => x.FileName).Distinct().ToList();
+            DownloadComments(result, baseUrl, franchiseNames);
+            List<RstComments> rstComments = new List<RstComments>();
+            foreach (var label in result.Keys)
+            {
+                rstComments.Add(new RstComments
+                {
+                    Label = label,
+                    Content = result[label]
+                });
+            }
+            using (var writer = new StreamWriter("comments.csv", false, Encoding.UTF8))
+            using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+            {
+                csv.WriteRecords(rstComments);
+            }
+            return result;
+        }
+
+        private static void DownloadComments(Dictionary<string, string> result, string baseUrl, List<string> franchiseLabels)
+        {
+            foreach (var franchiseLabel in franchiseLabels)
+            {
+                DownloadCommentsFromUrl(result, string.Format("{0}{1}.rst.txt", baseUrl, franchiseLabel));
+            }
+        }
+
+        private static void DownloadCommentsFromUrl(Dictionary<string, string> result, string address)
+        {
+            Debug.WriteLine("Downloading " + address);
+            using (WebClient webClient = new WebClient())
+            {
+                var text = webClient.DownloadString(address);
+                string[] lines = text.Split(new string[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+                string currentLabel = string.Empty;
+                List<string> currentComment = new List<string>();
+                bool inComment = false;
+                foreach (var line in lines)
+                {
+                    if (line.StartsWith(".. _srw4_"))
+                    {
+                        if (line.EndsWith("_commentBegin:"))
+                        {
+                            inComment = true;
+                            currentComment.Clear();
+                            currentLabel = line.Substring(3, line.Length - 17);
+                            continue;
+                        }
+                        if (line.EndsWith("_commentEnd:"))
+                        {
+                            var commentContent = string.Join("<BR>", currentComment);
+                            result.Add(currentLabel, commentContent);
+                            currentLabel = string.Empty;
+                            inComment = false;
+                            continue;
+                        }
+                    }
+                    if (inComment)
+                    {
+                        currentComment.Add(line);
+                    }
+                }
+            }
         }
 
         private static List<Franchise> LoadFranchises()
@@ -110,7 +216,8 @@ namespace Srw4Mod
             {
                 foreach (var item in data)
                 {
-                    Debug.WriteLine(item.ToString());
+                    if(item!=null)
+                        Debug.WriteLine(item.ToString());
                 }
             }
         }

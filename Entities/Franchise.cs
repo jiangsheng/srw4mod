@@ -250,11 +250,13 @@ namespace Entities
             }; Franchises.Add(franchise);
         }*/
         public  byte Id { get; set; }
-        public string? Name { get; set; }
-        public string? EnglishName { get; set; }
-        public string? FileName { get; set; }
+        public required string Name { get; set; }
+        public required string EnglishName { get; set; }
+        public required string FileName { get; set; }
+        public required string ShortName { get; set; }
+
+
         public static List<Franchise>? Franchises { get; set; }
-        public string? ShortName { get; set; }
 
         public static string FormatFranchise(int franchiseId)
         {
@@ -349,48 +351,140 @@ namespace Entities
             }
             return $":ref:`{franchise.ShortName} <srw4_{type}_{franchise.FileName}>`";
         }
-        public void WriteUnitRst(string outputFolder, List<UnitMetaData> unitMetaData, List<Unit>? unitsSnes, List<Unit>? unitsPlayStation, List<Pilot>? pilotsSnes, List<Pilot>? pilotsPlayStation,
-            List<Weapon>? weaponSnes,
-            List<Weapon>? weaponPlayStation, string franchiseComment)
+        public static void WritePilotRst(string pilotsFolder, List<PilotMetaData> pilotsMetaData, Rom snesRom, Rom playstationRom,  Dictionary<string, string> comments)
         {
-            var fileName = Path.Combine(outputFolder, $"{FileName}.rst");
-            var franchiseUnitsSnes = unitsSnes.Where(u=>u.FranchiseName==this.ShortName);
-            var franchiseUnitsPlayStation = unitsPlayStation.Where(u => u.FranchiseName == this.ShortName);
+            if(Franchise.Franchises==null)
+                throw new ArgumentNullException(nameof(Franchise));
+
+            var pilotTScoreParametersSet
+                = new PilotTScoreParametersSet(snesRom.Pilots, playstationRom.Pilots);
+            var franchiseFileNames = Franchise.Franchises.Select(x => x.FileName).Distinct().ToList();
+            foreach (var franchiseFileName in franchiseFileNames)
+            {
+                 var franchisesInFileName = Franchise.Franchises.Where(x => x.FileName == franchiseFileName).Select(x=>x.ShortName).ToList();
+                WritePilotRstToFileName(pilotsFolder, franchiseFileName, 
+                    pilotsMetaData, snesRom, playstationRom, comments, franchisesInFileName, pilotTScoreParametersSet);
+            }
+
+        }
+
+        private static void WritePilotRstToFileName(string outputFolder, string franchiseFileName, List<PilotMetaData> pilotMetaData, Rom snesRom, Rom playstationRom, Dictionary<string, string> comments, List<string> franchisesInFileName, PilotTScoreParametersSet pilotTScoreParametersSet)
+        {
+            var outputFileName = Path.Combine(outputFolder, string.Format("{0}.rst", franchiseFileName));
+
+            var query= from franchisesShortName in franchisesInFileName
+                       from pilot in pilotMetaData
+                       where pilot.FranchiseName == franchisesShortName
+                       orderby pilot.Affiliation descending
+                       select pilot;
+
+            var franchisePilots= query.ToList();
+
+            var pageTitleQuery = from franchise in Franchises
+                            from franchiseInFileName in franchisesInFileName
+                            where franchise.ShortName == franchiseInFileName
+                            select franchise.Name;
+
+            var pageTitle = string.Join("/", pageTitleQuery.ToList());
+
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.AppendLine(".. meta::");
-            stringBuilder.AppendLine($":description: {Name}机体：括号内为PS版变动。地形补正(→)为用默认驾驶员的地形适应和机体的移动类型修正之后的数据。{INamedItem.GetNames(franchiseUnitsSnes.Cast<INamedItem>().ToList())} ");
-            stringBuilder.AppendLine($".. _srw4_units_{FileName}:");
+            stringBuilder.AppendLine($"   :description: {pageTitle}}}登场人物 {INamedItem.GetNames(franchisePilots.Cast<INamedItem>().ToList())} ");
+            stringBuilder.AppendLine($".. _srw4_pilots_{franchiseFileName}:");
             stringBuilder.AppendLine();
-            var header = $"{Name}机体";
+            var header = $"{pageTitle}登场人物";
+            RstHelper.AppendHeader(stringBuilder, header, '=');
+            stringBuilder.AppendLine("括号内为PS版变动。A→B中的A和B分别是0级和99级的数据。偏差值表示排名位置，均值为50。");
+            stringBuilder.AppendLine();
+            stringBuilder.AppendLine($".. _srw4_pilots_{franchiseFileName}_commentBegin:");
+            stringBuilder.AppendLine(RstHelper.GetComments(comments, string.Format("_srw4_pilots_{0}", franchiseFileName)));
+            stringBuilder.AppendLine($".. _srw4_pilots_{franchiseFileName}_commentEnd:");
+            stringBuilder.AppendLine();
+            int totalAffiliationsPilotCount = 0;
+
+            foreach (var affiliation in Affiliation.Affiliations)
+            {
+                var affiliationsPilots = franchisePilots.Where(u => u.Affiliation == affiliation.ShortName)
+                .OrderBy(p => p.GetFirstAppearanceOrder()).
+                ThenBy(p => p.Id).ToList();
+                if (affiliationsPilots == null || affiliationsPilots.Count == 0)
+                    continue;
+                totalAffiliationsPilotCount += affiliationsPilots.Count;
+                affiliation.RstAppendPilots(stringBuilder, affiliationsPilots,
+                    franchiseFileName, snesRom, playstationRom, comments, pilotTScoreParametersSet);
+            }
+            if (totalAffiliationsPilotCount == 0) return;
+            File.WriteAllText(outputFileName, stringBuilder.ToString());
+        }
+
+        public static void WriteUnitsRst(string outputFolder, List<UnitMetaData> unitMetaData, Rom snesRom, Rom playstationRom, Dictionary<string,string> comments)
+        {
+            if (snesRom.Units == null) throw new ArgumentNullException(nameof(snesRom));
+            if (playstationRom.Units == null) throw new ArgumentNullException(nameof(playstationRom));
+            if(Franchise.Franchises==null) throw new ArgumentNullException(nameof(Franchise));
+
+
+            var unitTScoreParametersSet
+                = new UnitTScoreParametersSet(snesRom.Units, playstationRom.Units);
+
+            var franchiseFileNames = Franchise.Franchises.Select(x => x.FileName).Distinct().ToList();
+            foreach (var franchiseFileName in franchiseFileNames)
+            {
+                var franchisesInFileName = Franchise.Franchises.Where(x => x.FileName == franchiseFileName).Select(x => x.ShortName).ToList();
+                WriteUnitsRstToFileName(outputFolder, franchiseFileName, unitMetaData, snesRom, playstationRom, comments, franchisesInFileName, unitTScoreParametersSet);
+            }
+        }
+
+
+        public static void WriteUnitsRstToFileName(string outputFolder, string franchiseFileName, List<UnitMetaData> unitMetaData, Rom snesRom, Rom playstationRom,  Dictionary<string, string> comments, List<string> franchisesInFileName, UnitTScoreParametersSet unitTScoreParametersSet)
+        {
+             var fileName = Path.Combine(outputFolder, $"{franchiseFileName}.rst");
+
+            var query = from franchisesShortName in franchisesInFileName
+                        from unit in unitMetaData
+                        where unit.FranchiseName == franchisesShortName
+                        orderby unit.Affiliation descending
+                        select unit;
+
+            var franchiseUnits= query.ToList();
+
+            var pageTitleQuery = from franchise in Franchises
+                                 from franchiseInFileName in franchisesInFileName
+                                 where franchise.ShortName == franchiseInFileName
+                                 select franchise.Name;
+
+
+            var pageTitle = string.Join("/", pageTitleQuery.ToList());
+
+
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.AppendLine(".. meta::");
+            stringBuilder.AppendLine($"   :description: {pageTitle}机体：括号内为PS版变动。地形补正(→)为用默认驾驶员的地形适应和机体的移动类型修正之后的数据。{INamedItem.GetNames(franchiseUnits.Cast<INamedItem>().ToList())} ");
+            stringBuilder.AppendLine($".. _srw4_units_{franchiseFileName}:");
+            stringBuilder.AppendLine();
+            var header = $"{pageTitle}登场机体";
             RstHelper.AppendHeader(stringBuilder, header, '=');
             stringBuilder.AppendLine();
-            stringBuilder.AppendLine("括号内为PS版变动。地形补正(→)为用默认驾驶员的地形适应和机体的移动类型修正之后的数据。");
+            stringBuilder.AppendLine("括号内为PS版变动。地形补正(→)为用默认驾驶员的地形适应和机体的移动类型修正之后的数据。偏差值表示排名位置，均值为50。");
             stringBuilder.AppendLine();
-            stringBuilder.AppendLine($".. _srw4_units_{FileName}_commentBegin:");
-            stringBuilder.AppendLine(franchiseComment);
-            stringBuilder.AppendLine($".. _srw4_units_{FileName}_commentEnd:");
+            stringBuilder.AppendLine($".. _srw4_units_{franchiseFileName}_commentBegin:");
+            stringBuilder.AppendLine(RstHelper.GetComments(comments, string.Format("_srw4_units_{0}", franchiseFileName)));
+            stringBuilder.AppendLine($".. _srw4_units_{franchiseFileName}_commentEnd:");
             stringBuilder.AppendLine();
             int totalAffiliationsUnitCount = 0;
             foreach (var affiliation in Affiliation.Affiliations)
             {
-                var affiliationsUnits = unitMetaData.Where(u => u.Affiliation == affiliation.ShortName
-            && u.FranchiseName == this.ShortName)
-                .OrderByDescending(u => unitsSnes.First(snesUnit => snesUnit.Id == u.Id).GetMaxDamage()).
+                var affiliationsUnits = franchiseUnits.Where(u => u.Affiliation == affiliation.ShortName)
+                .OrderBy(u => u.GetFirstAppearanceOrder()).
                 ThenBy(u => u.Id).ToList();
                 if (affiliationsUnits == null || affiliationsUnits.Count == 0)
                     continue;
-                totalAffiliationsUnitCount+= affiliationsUnits.Count;
-                affiliation.RstAppendUnits(stringBuilder, affiliationsUnits, 
-                    this.FileName, string.Empty, unitsSnes, unitsPlayStation, pilotsSnes, pilotsPlayStation,weaponSnes,
-                        weaponPlayStation);
+                totalAffiliationsUnitCount += affiliationsUnits.Count;
+                affiliation.RstAppendUnits(stringBuilder, affiliationsUnits,
+                    franchiseFileName, snesRom, playstationRom, comments, unitTScoreParametersSet);
             }
             if (totalAffiliationsUnitCount == 0) return;
             File.WriteAllText(fileName, stringBuilder.ToString());
-        }
-        public void WritePilotRst(string outputFolder, List<UnitMetaData> units, List<Pilot>? pilots1, List<Pilot>? pilots2)
-        {
-            var fileName = Path.Combine(outputFolder, string.Format("{0}.rst", FileName));
-            return;
         }
     }
 }

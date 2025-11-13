@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Entities
 {
-    public class UnitMetaData
+    public class UnitMetaData: INamedItem
     {
         public int Id { get; set; }
         public string? Name { get; set; }
@@ -15,6 +15,14 @@ namespace Entities
         public string? FranchiseName { get; set; }
         public string? EnglishName { get; set; }
         [Optional]
-        public int? PreferredPilotId { get; set; }
+        public int PreferredPilotId { get; set; }
+        [Optional]
+        public int FirstAppearance { get; set; }
+        public int GetFirstAppearanceOrder()
+        {
+            if (FirstAppearance == 0)
+                return 255;
+            return FirstAppearance;
+        }
     }
 }

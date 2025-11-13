@@ -9,12 +9,8 @@ namespace Entities
     public interface INamedItem
     {
         public string? Name { get; set; }
-        static string GetNames(List<INamedItem>? namedItems)
+        static string GetNames(List<INamedItem> namedItems)
         {
-            if (namedItems == null || namedItems.Count == 0)
-            {
-                return string.Empty;
-            }
             StringBuilder stringBuilder = new StringBuilder();
             foreach (var item in namedItems)
             {

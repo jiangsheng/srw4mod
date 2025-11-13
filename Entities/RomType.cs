@@ -6,4 +6,11 @@ using System.Threading.Tasks;
 
 namespace Entities
 {
+    public enum RomType
+    {
+        Snes,
+        PlayStation,
+        Count
+
+    }
 }

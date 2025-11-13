@@ -16,6 +16,14 @@ namespace Entities
             stringBuilder.AppendLine(seperatorLine);
         }
 
+        internal static string? GetComments(
+            Dictionary<string, string> comments,string label)
+        {
+            if (!comments.ContainsKey(label)) return "\r\n";
+            var content = comments[label].Replace("<BR>", "\r\n");
+            return content;
+        }
+
         internal static string GetLabelName(string? englishName)
         {
            StringBuilder result=new StringBuilder(englishName);
