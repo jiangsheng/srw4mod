@@ -103,7 +103,7 @@ namespace Srw4Mod
             Franchise.WritePilotRst(pilotsFolder, pilots, snesRom, playstationRom, comments);
 
            
-            //DumpData(playstationRom.Pilots);
+            DumpData(playstationRom.Pilots);
             //DumpData(playstationRom.Units);
             //DumpData(playstationRom.Weapons);
         }

@@ -28,7 +28,9 @@ namespace Entities
             //マジンガーＺ
             UnitGroups.Add(new GroupInfo(0X1E, 2));
             //コンバトラーＶ
-            UnitGroups.Add(new GroupInfo(0X2D, 5));
+            UnitGroups.Add(new GroupInfo(50, new List<int> {
+                50,45,46,47,48,49
+            }));
             //ダイターン３
             UnitGroups.Add(new GroupInfo(0X37, 3));
             //ザンボット３
@@ -92,6 +94,10 @@ namespace Entities
         {
             foreach (var group in GroupInfo.UnitGroups)
             {
+                if(group.LeadId==id)
+                {
+                    return group;
+                }
                 if (group.MemberIds.Contains(id))
                 {
                     return group;
