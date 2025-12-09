@@ -14,6 +14,8 @@ namespace Entities
         public string? Affiliation { get; set; }
         public string? FranchiseName { get; set; }
         public string? EnglishName { get; set; }
+
+        public string? ChineseName { get; set; }
         public int FirstAppearance { get; set; }
         public int GetFirstAppearanceOrder()
         {

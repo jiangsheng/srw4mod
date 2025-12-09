@@ -46,8 +46,10 @@ namespace Entities
                     FranchiseName = u.FranchiseName,
                     Name = u.Name,
                     EnglishName = u.EnglishName,
+                    ChineseName = u.ChineseName,
                     PreferredPilotId = u.PreferredPilotId
                     , FirstAppearance = u.FirstAppearance,
+
                 }).ToList();
                 WriteCsv("UnitMetaData.csv", units);
                 var pilots = this.Pilots?.Select(p => new PilotMetaData
@@ -57,6 +59,7 @@ namespace Entities
                     FranchiseName = p.FranchiseName,
                     Affiliation = p.Affiliation,
                     EnglishName = p.EnglishName,
+                    ChineseName = p.ChineseName,
                     FirstAppearance = p.FirstAppearance,
                 }).ToList();
                 WriteCsv("PilotMetaData.csv", pilots);

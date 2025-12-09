@@ -123,8 +123,9 @@
 </value>
   </data>
   <data name="RstUnitGridColumnAutoWithText" xml:space="preserve">
-    <value>    .. grid-item::{0}
+    <value>    .. grid-item:: {0}
         :columns: auto
+
 </value>
   </data>
   <data name="RstUnitGridColumnAuto2" xml:space="preserve">
@@ -184,5 +185,11 @@
             :padding: 0
 
 </value>
+  </data>
+  <data name="RstTocTree2" xml:space="preserve">
+    <value>.. contents:: 
+   :depth: 2
+   :local:
+   :backlinks: none</value>
   </data>
 </root>

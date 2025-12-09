@@ -7,9 +7,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
 using System.Xml.Linq;
-
 namespace Entities
 {
     public class Unit : IRstFormatter, INamedItem
@@ -18,6 +18,8 @@ namespace Entities
         public int Id { get; set; }
         public string? Name { get; set; }
         public string? EnglishName { get; set; }
+
+        public string? ChineseName { get; set; }
         public string? Affiliation { get; set; }
         public string? FranchiseName { get; set; }
 
@@ -31,16 +33,24 @@ namespace Entities
         public byte UnitSizeBit { get; set; }
         public byte BackgroundMusic { get; set; }
         public byte TransformOrCombineType { get; set; }
+
+        public byte UnknownUnitSpecialSkill1 { get; set; }
         public byte UnknownUnitSpecialSkill2 { get; set; }
         public bool HasSword { get; private set; }
         public int BeamCoatType { get; private set; }
         public bool HasAfterimage { get; private set; }
         public bool HasShield { get; private set; }
+
         public bool HasEnergyRecovery { get; private set; }
         public byte HPRecoveryType { get; private set; }
         public bool RageAndDetonateImmune { get; private set; }
         public bool IsAggressive { get; set; }
+        public bool IsCarrier { get; set; }
+        public bool HasNextStage { get; set; }
         public byte Team { get; set; }
+
+        [Ignore]
+        public byte[]? UnknownBytes { get; set; }
         public byte Experience { get; set; }
 
         public ushort Gold { get; set; }
@@ -141,7 +151,7 @@ namespace Entities
             unit.Affiliation = fixUnit.Affiliation;
             unit.FranchiseName = fixUnit.FranchiseName;
             unit.FirstAppearance = fixUnit.FirstAppearance;
-
+            unit.ChineseName = fixUnit.ChineseName;
             unit.PreferredPilotId = fixUnit.PreferredPilotId;
             if (unit.FixedSeatPilotId != 0)
             {
@@ -215,15 +225,20 @@ namespace Entities
             unit.HasEnergyRecovery = (unitSpecialSkill1 & 0x02) != 0;
             unit.HPRecoveryType = (byte)(unitSpecialSkill1 & 0x0C);
             unit.HasSword = (unitSpecialSkill1 & 0x40) != 0;
+            
             unit.RageAndDetonateImmune = (unitSpecialSkill1 & 0x80) != 0;
+            unit.UnknownUnitSpecialSkill1 = (byte)(unitSpecialSkill1 & 0x30);
 
             unit.BeamCoatType = unitSpecialSkill2 & 0x0E;
             unit.HasAfterimage = (unitSpecialSkill2 & 0x10) != 0;
             unit.HasShield = (unitSpecialSkill2 & 0x20) != 0;
-            unit.UnknownUnitSpecialSkill2 = (byte)(unitSpecialSkill1 & (~0x3F));
+            unit.HasNextStage = (unitSpecialSkill2 & 0x40) != 0;
+            unit.IsCarrier= (unitSpecialSkill2 & 0x80) != 0;            
+            unit.UnknownUnitSpecialSkill2 = (byte)(unitSpecialSkill2 & 0x01);
             //offset A
             unit.Team = unitData[offset++];
             //offset B,C,D,E
+            unit.UnknownBytes = unitData.Skip(offset).Take(4).ToArray();
             offset += 4;
             //offset F
             unit.Experience = unitData[offset++];
@@ -312,7 +327,7 @@ namespace Entities
             StringBuilder stringBuilder
                 = new StringBuilder();
             stringBuilder.AppendFormat("Id: {0}", Id);
-            stringBuilder.AppendFormat("\t名: {0}\t({1})", Name, EnglishName);
+            stringBuilder.AppendFormat("\t名: {0}\t\t{1}\t{2}", Name, EnglishName,ChineseName);
             stringBuilder.AppendFormat("\t属: {0}", Affiliation);
             stringBuilder.AppendFormat("\t作: {0}", FranchiseName);
             stringBuilder.AppendFormat("\t图标: {0:X}:{1:X}:", BaseOffset, IconId);
@@ -349,7 +364,14 @@ namespace Entities
             {
                 stringBuilder.Append("\t激怒/自爆/てかげん無効");
             }
+
+            if (UnknownUnitSpecialSkill1 != 0)
+            {
+                stringBuilder.AppendFormat("\t未知技能1 {0:X} ", UnknownUnitSpecialSkill1);
+            }
+
             stringBuilder.AppendFormat("\t技能2: {0:X}", BaseOffset + 9);
+
             switch (BeamCoatType)
             {
                 case 0x02: stringBuilder.Append("\tビームコート"); break;
@@ -365,11 +387,23 @@ namespace Entities
             {
                 stringBuilder.Append("\t盾装備");
             }
+            if (IsCarrier)
+            {
+                stringBuilder.Append("\t盾装備");
+            }
+            if (HasNextStage)
+            {
+                stringBuilder.Append("\t变身");
+            }
             if (UnknownUnitSpecialSkill2 != 0)
             {
-                stringBuilder.AppendFormat("\t未知技能 {0:X} ", UnknownUnitSpecialSkill2);
+                stringBuilder.AppendFormat("\t未知技能2 {0:X} ", UnknownUnitSpecialSkill2);
             }
             stringBuilder.AppendFormat("\t分队: {0:X}:{1:X}", BaseOffset + 0xa, Team);
+
+            stringBuilder.AppendFormat("\t未知数据{0}", Convert.ToHexString(this.UnknownBytes));
+
+
             stringBuilder.AppendFormat("\t经验: {0:X}:{1}", BaseOffset + 0xf, Experience);
             stringBuilder.AppendFormat("\t获得资金: {0:X}:{1}", BaseOffset + 0x10, Gold);
             stringBuilder.AppendFormat("\t修理费 RepairCost: {0:X}:{1}", BaseOffset + 0x12, RepairCost);
@@ -459,7 +493,31 @@ namespace Entities
             else
                 row.AppendLine("     - ");
             var unitLabel = RstHelper.GetLabelName(this.EnglishName);
-            row.AppendLine(string.Format("     - \\ :ref:`{0} <srw4_unit_{1}>`\\ ", this.Name, unitLabel));
+
+            row.Append(string.Format("     - \\ :ref:`{0} <srw4_unit_{1}>`\\ ", this.Name, unitLabel));
+            if (!string.IsNullOrEmpty(ChineseName))
+            {
+                row.AppendFormat("({0})", ChineseName);
+            }
+
+            if (this.HasSword)
+            {
+                row.Append("⚔");
+            }
+            if (this.HasShield)
+            {
+                row.Append("🛡");
+            }
+            if(this.HasAfterimage)
+            {
+                row.Append("⇔");
+            }
+
+            if (this.IsCarrier)
+            {
+                row.Append("🚚");
+            }
+            row.AppendLine();
             row.AppendLine(string.Format("     - {0}", this.EnglishName));
             row.AppendLine(string.Format("     - {0}", Franchise.ToRstFranchise(this.FranchiseName, "units")));
             row.AppendLine(string.Format("     - {0}", this.HP));
@@ -514,8 +572,13 @@ namespace Entities
 
             if (playstationUnit == null || playstationUnit.TerrainAdaptionSet == null)
                 throw new ArgumentNullException(nameof(playstationUnit));
+            var unitName = unitMetaData.Name;
+            if (!string.IsNullOrEmpty(unitMetaData.ChineseName))
+            {
+                unitName += string.Format("({0})", unitMetaData.ChineseName);
+            }
 
-            RstHelper.AppendHeader(stringBuilder, unitMetaData.Name, '^');
+            RstHelper.AppendHeader(stringBuilder, unitName, '^');
             stringBuilder.AppendLine();
             var unitLabel = RstHelper.GetLabelName(unitMetaData.EnglishName);
             Debug.Assert(!string.IsNullOrEmpty(unitLabel));
@@ -575,7 +638,7 @@ namespace Entities
             stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "射程"));
             stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "命中"));
             stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "暴击"));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithTextAndSpan, "地形空陆海宇", 3));
+            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithTextAndSpan, "地形", 3));
             stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "残弹/EN"));
             stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "条件"));
             stringBuilder.Append(Resource.RstUnitGridColumnBreak);
@@ -654,9 +717,6 @@ namespace Entities
             }
 
             stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText, 
-                Rom.FormatValue(snesWeapon.Damage, playstationWeapon.Damage));
-
-            stringBuilder.AppendFormat(Resource.RstUnitGridColumnWithText,
                 Rom.FormatValue(snesWeapon.Damage, playstationWeapon.Damage));
 
             StringBuilder rangeBuilder = new StringBuilder();
@@ -818,26 +878,28 @@ namespace Entities
             stringBuilder.AppendLine();
 
             stringBuilder.AppendLine(Resource.RstUnitGridHeader2);
+            stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText,
+                   string.Format("英文:{0}。", snesUnit.EnglishName));
             if (snesUnit.FirstAppearance > 0)
             {
                 stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText,
-                    string.Format("登场/加入:第{0}话", snesUnit.FirstAppearance));
+                    string.Format("登场/加入:第{0}话。", snesUnit.FirstAppearance));
             }
 
             stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText,
-                    string.Format("编码 {0:X2}", snesUnit.Id));
+                    string.Format("编码:{0:X2}。", snesUnit.Id));
             stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText,
-                    string.Format("地址 {0:X} ({1:X})", snesUnit.BaseOffset, playstationUnit.BaseOffset));
+                    string.Format("地址 {0:X} ({1:X})。", snesUnit.BaseOffset, playstationUnit.BaseOffset));
             stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText,
-                    string.Format("武器首地址 {0:X} ({1:X})", snesUnit.BaseOffset + 0x20, playstationUnit.BaseOffset + 0x20));
+                    string.Format("武器首地址:{0:X} ({1:X})。", snesUnit.BaseOffset + 0x20, playstationUnit.BaseOffset + 0x20));
             
             stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText,
-                    string.Format("移动类型 {0}", Rom.FormatValue
+                    string.Format("移动类型:{0}。", Rom.FormatValue
                 (TerrainAdaptionSet.FormatMovementType(snesUnit.MoveType), TerrainAdaptionSet.FormatMovementType(playstationUnit.MoveType))));
             stringBuilder.AppendLine();
 
             stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText,
-                    string.Format("大小 {0}", snesUnit.FormatUnitSize(snesUnit.UnitSize)));
+                    string.Format("大小 {0}。", snesUnit.FormatUnitSize(snesUnit.UnitSize)));
 
             if (snesUnit.TerrainAdaptionSet != null && playstationUnit.TerrainAdaptionSet != null)
             {
@@ -845,7 +907,7 @@ namespace Entities
                     , playstationUnit.TerrainAdaptionSet, effectiveSnesUnitTerrainAdoptions, effectivePlayStationUnitTerrainAdoptions);
 
                 stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText,
-                    string.Format("地形适应 {0}", string.Join(string.Empty, formattedEffectiveTerrainWeaponAdaption)));
+                    string.Format("地形适应:{0}。", string.Join(string.Empty, formattedEffectiveTerrainWeaponAdaption)));
                 stringBuilder.AppendLine();
             }
             if (snesPreferredPilot != null)
@@ -854,16 +916,15 @@ namespace Entities
                 var preferedPilotLabel = string.Format("srw4_pilot_{0}", snesPreferredPilot.GetLabel());
 
                 stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText,
-                    string.Format("地形参照  \\ :ref:`{0} <{1}>`\\ ", snesPreferredPilot.Name, preferedPilotLabel));
+                    string.Format("地形参照： \\ :ref:`{0} <{1}>`\\ 。", snesPreferredPilot.Name, preferedPilotLabel));
                 stringBuilder.AppendLine();
 
                 stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText,Pilot.RstGetPilotIcon(snesPreferredPilot.Id));  
             }
-            List<string> unitSkills = GetUnitSkillDescriptions(snesUnit, playstationUnit);
+            List<string> unitSkills = GetUnitSkillDescriptions(snesUnit, playstationUnit, snesRom.Units);
             if (unitSkills.Count > 0)
             {
-                stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText,
-                    string.Join(", ", unitSkills));
+                stringBuilder.AppendFormat(Resource.RstUnitGridColumnAuto2WithText, string.Format("\\ :ref:`技能 <srw4_unit_specialty>`\\ : {0}", string.Format("{0}。", string.Join("、", unitSkills))));
                 stringBuilder.AppendLine();
             }
             stringBuilder.AppendLine(Resource.RstUnitGridHeader);
@@ -941,7 +1002,7 @@ namespace Entities
                 );
         }
 
-        private static List<string> GetUnitSkillDescriptions(Unit snesUnit, Unit playstationUnit)
+        private static List<string> GetUnitSkillDescriptions(Unit snesUnit, Unit playstationUnit, List<Unit>? units)
         {
             var result= new List<string>();
             if (snesUnit.HasAfterimage == playstationUnit.HasAfterimage)
@@ -969,11 +1030,14 @@ namespace Entities
                 result.Add("剣装備");
             }
             Debug.Assert(snesUnit.HasSword == playstationUnit.HasSword);
-            if (snesUnit.HasEnergyRecovery)
+            if (snesUnit.HasEnergyRecovery || playstationUnit.HasEnergyRecovery)
             {
+                Debug.Assert(snesUnit.HasEnergyRecovery == playstationUnit.HasEnergyRecovery);
                 result.Add("EN恢復");
 
             }
+            Debug.Assert(snesUnit.HPRecoveryType == playstationUnit.HPRecoveryType);
+
             switch (snesUnit.HPRecoveryType)
             {
                 case 0x04:
@@ -983,13 +1047,21 @@ namespace Entities
                     result.Add("HP恢復(大)");
                     break;
             }
-            Debug.Assert(snesUnit.HasEnergyRecovery == playstationUnit.HasEnergyRecovery);
-            Debug.Assert(snesUnit.HPRecoveryType == playstationUnit.HPRecoveryType);
-            if (snesUnit.RageAndDetonateImmune)
+            if (snesUnit.RageAndDetonateImmune||playstationUnit.RageAndDetonateImmune)
             {
+                Debug.Assert(snesUnit.RageAndDetonateImmune == playstationUnit.RageAndDetonateImmune);
                 result.Add("激怒/自爆/てかげん無効");
             }
-            Debug.Assert(snesUnit.RageAndDetonateImmune == playstationUnit.RageAndDetonateImmune);
+            if(snesUnit.IsCarrier|| playstationUnit.IsCarrier)
+            {
+                Debug.Assert(snesUnit.IsCarrier == playstationUnit.IsCarrier);
+                result.Add("搭载");
+            }
+            if (snesUnit.HasNextStage || playstationUnit.HasNextStage)
+            {
+                Debug.Assert(snesUnit.HasNextStage == playstationUnit.HasNextStage);
+                result.Add("变身");
+            }
             switch (snesUnit.BeamCoatType)
             {
                 case 0x02:
@@ -1006,7 +1078,93 @@ namespace Entities
                     break;
             }
             Debug.Assert(snesUnit.BeamCoatType == playstationUnit.BeamCoatType);
+            Debug.Assert(snesUnit.TransformOrCombineType == playstationUnit.TransformOrCombineType);
+            switch (snesUnit.TransformOrCombineType)
+            {
+                case 0x8:
+                    result.Add(GetTransforms("变形",units?.Where(u=>u.Id==snesUnit.Id+1).ToList()));
+                    break;                
+                case 0x09:
+                case 0xA9:
+                    result.Add(GetTransforms("变形", units?.Where(u => u.Id == snesUnit.Id - 1).ToList()));
+                    break;
+                case 0x18:
+                case 0x28:
+                    result.Add(GetTransforms("变形", units?.Where(u => u.Id == snesUnit.Id + 1 || u.Id == snesUnit.Id + 2).ToList()));
+                    break;
+                case 0x19:
+                case 0x21:
+                    result.Add(GetTransforms("变形", units?.Where(u => u.Id == snesUnit.Id + 1 || u.Id == snesUnit.Id -1).ToList()));
+                    break;
+                case 0x1a:
+                case 0x22:
+                    result.Add(GetTransforms("变形", units?.Where(u => u.Id == snesUnit.Id -2 || u.Id == snesUnit.Id - 1).ToList()));
+                    break;
+                case 10:
+                    result.Add(GetTransforms("分离", units?.Where(u => u.Id == snesUnit.Id + 1).ToList()));
+                    break;
+                case 11:
+                    result.Add(GetTransforms("被分离", units?.Where(u => u.Id == snesUnit.Id - 1).ToList()));
+                    break;
+                case 0xA8:
+                case 0xB0:
+                    result.Add(GetTransforms("合体，变形", units?.Where(u => u.Id == snesUnit.Id + 1).ToList()));
+                    break;
+
+                case 0xB1:
+                    result.Add(GetTransforms("合体，变形", units?.Where(u => u.Id == snesUnit.Id - 1).ToList()));
+                    break;
+
+                case 0xAA:
+                case 0xAB:
+                case 0xB2:
+                case 0xB3:
+                case 0xC8:
+                case 0xC9:
+                case 0xCA:
+                case 0xCB:
+                case 0xCC:
+                case 0xD8:
+                case 0xD9:
+                    result.Add("合体"); break;
+                case 0xAD:
+                case 0xAE:
+                case 0xAF:
+                case 0xB4:
+                case 0xC0:
+                case 0xD0:
+                case 0xDA:
+                    result.Add("分离");break;
+
+                case 0xB8:
+                    result.Add(GetTransforms("合体，变形", units?.Where(u => u.Id == snesUnit.Id + 1 || u.Id == snesUnit.Id + 2).ToList()));
+                    break;
+                case 0xB9:
+                    result.Add(GetTransforms("合体，变形", units?.Where(u => u.Id == snesUnit.Id + 1 || u.Id == snesUnit.Id -1).ToList()));
+                    break;
+                case 0xBA:
+                    result.Add(GetTransforms("合体，变形", units?.Where(u => u.Id == snesUnit.Id -2 || u.Id == snesUnit.Id - 1).ToList()));
+                    break;
+            }
             return result;
+        }
+        public static string GetTransforms(string transformType, List<Unit>? list)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendFormat("{0}(", transformType);
+            bool isFirstItem = true;
+            foreach (var item in list)
+            {
+                if (isFirstItem)
+                {
+                    isFirstItem = false;
+                }
+                else
+                    sb.Append("、");
+                sb.AppendFormat("\\ :ref:`{0} <srw4_unit_{1}>`\\ ({2})",item.Name, RstHelper.GetLabelName(item.EnglishName),item.ChineseName);
+            }
+            sb.Append(")");
+            return sb.ToString();
         }
 
         private static void WriteAttributeWithTScore(StringBuilder stringBuilder, string dataType, UnitTScoreParametersSet unitTScoreParametersSet,

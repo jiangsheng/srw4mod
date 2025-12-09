@@ -391,10 +391,13 @@ namespace Entities
             stringBuilder.AppendLine(".. meta::");
             stringBuilder.AppendLine($"   :description: {pageTitle}}}登场人物 {INamedItem.GetNames(franchisePilots.Cast<INamedItem>().ToList())} ");
             stringBuilder.AppendLine($".. _srw4_pilots_{franchiseFileName}:");
-            stringBuilder.AppendLine();
+            stringBuilder.AppendLine();            
             var header = $"{pageTitle}登场人物";
             RstHelper.AppendHeader(stringBuilder, header, '=');
             stringBuilder.AppendLine("括号内为PS版变动。A→B中的A和B分别是0级和99级的数据。偏差值表示排名位置，均值为50。");
+            stringBuilder.AppendLine();
+            stringBuilder.AppendLine();
+            stringBuilder.AppendLine(Resource.RstTocTree2);
             stringBuilder.AppendLine();
             stringBuilder.AppendLine($".. _srw4_pilots_{franchiseFileName}_commentBegin:");
             stringBuilder.AppendLine(RstHelper.GetComments(comments, string.Format("_srw4_pilots_{0}", franchiseFileName)));
@@ -466,6 +469,9 @@ namespace Entities
             RstHelper.AppendHeader(stringBuilder, header, '=');
             stringBuilder.AppendLine();
             stringBuilder.AppendLine("括号内为PS版变动。地形补正(→)为用默认驾驶员的地形适应和机体的移动类型修正之后的数据。偏差值表示排名位置，均值为50。");
+            stringBuilder.AppendLine();
+            stringBuilder.AppendLine();
+            stringBuilder.AppendLine(Resource.RstTocTree2);
             stringBuilder.AppendLine();
             stringBuilder.AppendLine($".. _srw4_units_{franchiseFileName}_commentBegin:");
             stringBuilder.AppendLine(RstHelper.GetComments(comments, string.Format("_srw4_units_{0}", franchiseFileName)));

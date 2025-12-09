@@ -14,6 +14,7 @@ namespace Entities
         public int Id { get; set; }
         public string? Name { get; set; }
         public string? EnglishName { get; set; }
+        public string? ChineseName { get; set; }
         public string? Affiliation { get; set; }
         public string? FranchiseName { get; set; }
         public int BaseOffset { get; private set; }
@@ -112,6 +113,7 @@ namespace Entities
             }
             pilot.Name = fixPilot.Name;
             pilot.EnglishName = fixPilot.EnglishName;
+            pilot.ChineseName = fixPilot.ChineseName;
             pilot.Affiliation = fixPilot.Affiliation;
             pilot.FranchiseName = fixPilot.FranchiseName;
             pilot.FirstAppearance = fixPilot.FirstAppearance;
@@ -226,7 +228,7 @@ namespace Entities
             StringBuilder stringBuilder
                 = new StringBuilder();
             stringBuilder.AppendFormat(" Id: {0:X}", Id);
-            stringBuilder.AppendFormat("\t 名: {0}\t ({1})", Name, EnglishName);
+            stringBuilder.AppendFormat("\t名: {0}\t\t{1}\t{2}", Name, EnglishName, ChineseName);
             stringBuilder.AppendFormat("\t 属: {0:X}", Affiliation);
             stringBuilder.AppendFormat("\t 作: {0:X}", FranchiseName);
             stringBuilder.AppendFormat("\t 颜: {0:X}:{1}", BaseOffset, FaceId);
@@ -243,7 +245,7 @@ namespace Entities
             stringBuilder.AppendFormat("\t 能力增长模式: {0},{1},{2},{3},{4},{5},{6}",
                 NearGrowthType, FarGrowthType, AccuracyGrowthType, SkillGrowthType, EvasionGrowthType, IntuitionGrowthType, SPGrowthType);
 
-            stringBuilder.AppendFormat("\r\n 地形适应: {0:X}:{1}(2)",
+            stringBuilder.AppendFormat("\r\n 地形适应: {0:X}:{1}({2})",
                 BaseOffset + (this.IsPlayStation ? 9 : 8),
                 Convert.ToHexString(this.TerrainAdaptionSet != null ? this.TerrainAdaptionSet.ToPilotOrUnitAdaptions() : new byte[] { })
                 , this.TerrainAdaptionSet?.ToString());
@@ -277,7 +279,10 @@ namespace Entities
             row.AppendLine(string.Format("   * - {0:X2}", this.Id));
             row.AppendLine(string.Format("     - {0}", this.Affiliation));
             row.AppendLine(string.Format("     - {0}", RstGetPilotIcon(this.Id)));
-            row.AppendLine(string.Format("     - \\ :ref:`{0} <srw4_pilot_{1}>`\\ ", this.Name, RstHelper.GetLabelName(this.EnglishName)));
+            if(!string.IsNullOrEmpty(this.ChineseName))
+                row.AppendLine(string.Format("     - \\ :ref:`{0} <srw4_pilot_{1}>`\\ ({2}) ", this.Name, RstHelper.GetLabelName(this.EnglishName),this.ChineseName));
+            else
+                row.AppendLine(string.Format("     - \\ :ref:`{0} <srw4_pilot_{1}>`\\ ", this.Name, RstHelper.GetLabelName(this.EnglishName)));
             row.AppendLine(string.Format("     - {0}", this.EnglishName));
             row.AppendLine(string.Format("     - {0}", Franchise.ToRstFranchise(this.FranchiseName, "pilots")));
             row.AppendLine(string.Format("     - {0}", FormatPersonality(this.Personality)));
@@ -537,7 +542,13 @@ namespace Entities
             if (playstationPilot == null)
                 throw new ArgumentNullException(nameof(playstationPilot));
 
-            RstHelper.AppendHeader(stringBuilder, pilotMetaData.Name, '^');
+            var pilotName = pilotMetaData.Name;
+            if (!string.IsNullOrEmpty(pilotMetaData.ChineseName))
+            {
+                pilotName += string.Format("({0})", pilotMetaData.ChineseName);
+            }
+
+            RstHelper.AppendHeader(stringBuilder, pilotName, '^');
             stringBuilder.AppendLine();
 
             var pilotLabel = RstHelper.GetLabelName(pilotMetaData.EnglishName);
@@ -546,7 +557,9 @@ namespace Entities
             stringBuilder.AppendLine(string.Format(".. _srw4_pilot_{0}:", pilotLabel));
             stringBuilder.AppendLine();
 
-            RstWritePilotMetaData(stringBuilder, pilotId, pilotTScoreParametersSet, pilotMetaData, snesPilot, playstationPilot);
+            var fixedSeatUnits=snesRom.Units?.Where(u => u.FixedSeatPilotId == pilotId).ToList();
+            RstWritePilotMetaData(stringBuilder, pilotId, pilotTScoreParametersSet, pilotMetaData, snesPilot, playstationPilot, fixedSeatUnits);
+
             RstWritePilotSpiritCommandsAndSkills(stringBuilder, pilotMetaData, snesPilot, playstationPilot, delegate (PilotSpiritCommandsOrSkill pilotSpiritCommandsOrSkill) { return pilotSpiritCommandsOrSkill.SpiritCommandsOrSkill < 0x20; });
             RstWritePilotSpiritCommandsAndSkills(stringBuilder, pilotMetaData, snesPilot, playstationPilot, delegate (PilotSpiritCommandsOrSkill pilotSpiritCommandsOrSkill) { return pilotSpiritCommandsOrSkill.SpiritCommandsOrSkill >= 0x20; });
             stringBuilder.AppendLine();
@@ -632,31 +645,56 @@ namespace Entities
             }
         }
 
-        private static void RstWritePilotMetaData(StringBuilder stringBuilder, int pilotId, PilotTScoreParametersSet pilotTScoreParametersSet, PilotMetaData pilotMetaData, Pilot snesPilot, Pilot playstationPilot)
+        private static void RstWritePilotMetaData(StringBuilder stringBuilder, int pilotId, PilotTScoreParametersSet pilotTScoreParametersSet, PilotMetaData pilotMetaData, Pilot snesPilot, Pilot playstationPilot, List<Unit>? fixedSeatUnits)
         {
             stringBuilder.AppendLine(Resource.RstUnitGridHeader);
             stringBuilder.Append(Resource.RstUnitGridColumnAuto);
             stringBuilder.AppendLine();
             stringBuilder.AppendLine(string.Format("        {0}", RstGetPilotIcon(pilotId)));
             stringBuilder.AppendLine();
+            stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnAutoWithText, string.Format("英文:{0}。", pilotMetaData.EnglishName)));
+
             if (pilotMetaData.FirstAppearance > 0)
             {
-                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, string.Format("登场/加入:第{0}话", pilotMetaData.FirstAppearance)));
+                stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnAutoWithText, string.Format("登场/加入:第{0}话。", pilotMetaData.FirstAppearance)));
             }
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, string.Format("性格: {0}", Rom.FormatValue(FormatPersonality(snesPilot.Personality), FormatPersonality(playstationPilot.Personality)))));
+            stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnAutoWithText, string.Format("性格:{0}。", Rom.FormatValue(FormatPersonality(snesPilot.Personality), FormatPersonality(playstationPilot.Personality)))));
 
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, string.Format("SP: {0}", Rom.FormatValue(snesPilot.StartSP, playstationPilot.StartSP))));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, string.Format("编码 {0:X2}", pilotId)));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, string.Format("地址 {0:X} ({1:X})", snesPilot.BaseOffset, playstationPilot.BaseOffset)));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, string.Format("精神地址 {0:X}({1:X})", snesPilot.BaseOffset + 0x11, playstationPilot.BaseOffset + 0x12)));
+            stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnAutoWithText, string.Format("SP:{0}。", Rom.FormatValue(snesPilot.StartSP, playstationPilot.StartSP))));
+
+            stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnAutoWithText, string.Format("EXP:{0}。", Rom.FormatValue(snesPilot.Experience, playstationPilot.Experience))));
+
+            stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnAutoWithText, string.Format("编码:{0:X2}。", pilotId)));
+            stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnAutoWithText, string.Format("地址:{0:X} ({1:X})。", snesPilot.BaseOffset, playstationPilot.BaseOffset)));
+            stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnAutoWithText, string.Format("精神地址:{0:X}({1:X})。", snesPilot.BaseOffset + 0x11, playstationPilot.BaseOffset + 0x12)));
             if (snesPilot.TerrainAdaptionSet == null) throw new ArgumentNullException("snesPilot.TerrainAdaptionSet ");
             if (playstationPilot.TerrainAdaptionSet == null) throw new ArgumentNullException("playstationPilot.TerrainAdaptionSet ");
             
             var terrainAdoptions = TerrainAdaptionSet.FormatEffectiveTerrainWeaponAdaption
                 (snesPilot.TerrainAdaptionSet, playstationPilot.TerrainAdaptionSet,
                 snesPilot.TerrainAdaptionSet, playstationPilot.TerrainAdaptionSet);
-            stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnWithText, string.Format("地形适应 {0}",
-                string.Join(string.Empty, terrainAdoptions))));
+            stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnAutoWithText, string.Format("地形适应:{0}",
+                string.Format("{0}。", string.Join(string.Empty, terrainAdoptions)))));
+
+            if (fixedSeatUnits != null)
+            { 
+                List<string> fixedSeatUnitList=new List<string>();
+                foreach ( var unit in fixedSeatUnits) 
+                {
+                    var fixedSeatUnit = string.Format("\\ :ref:`{0} <srw4_unit_{1}>`\\ ",
+                        unit.Name, RstHelper.GetLabelName(unit.EnglishName));
+                    if (!string.IsNullOrEmpty(unit.ChineseName))
+                    {
+                        fixedSeatUnit += string.Format("({0})", unit.ChineseName);
+                    }
+                    fixedSeatUnitList.Add(fixedSeatUnit);
+                }
+                if (fixedSeatUnitList.Count > 0)
+                {
+                    stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnAutoWithText, string.Format("搭乘机体:{0}",
+                    string.Format("{0}。", string.Join("、", fixedSeatUnitList)))));
+                }
+            }
 
             stringBuilder.Append(Resource.RstUnitGridHeader);
             stringBuilder.AppendLine();
@@ -758,12 +796,42 @@ namespace Entities
             stringBuilder.AppendLine();
 
             var snesTScore = Math.Round(pilotTScoreParametersSet.SnesOwned.GetTScoreParameter(pilotTScoreParameterIndex).CalculateTScore(snesValue));
-            var playStationTScore = Math.Round(pilotTScoreParametersSet.PlayStationOwned.GetTScoreParameter(pilotTScoreParameterIndex99).CalculateTScore(snesValue99));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, Rom.FormatValue(snesTScore, playStationTScore)));
+            var playStationTScore = Math.Round(pilotTScoreParametersSet.PlayStationOwned.GetTScoreParameter(pilotTScoreParameterIndex).CalculateTScore(playstationValue));
 
+            var snesTScore99 = Math.Round(pilotTScoreParametersSet.SnesOwned.GetTScoreParameter(pilotTScoreParameterIndex99).CalculateTScore(snesValue99));
+            var playStationTScore99 = Math.Round(pilotTScoreParametersSet.PlayStationOwned.GetTScoreParameter(pilotTScoreParameterIndex99).CalculateTScore(playstationValue99));
+
+            if (snesTScore == snesTScore99 && playStationTScore == playStationTScore99)
+            {
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, 
+                    Rom.FormatValue(snesTScore, playStationTScore)));
+            }
+            else
+            {
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText,
+                    string.Format("{0}→{1}",
+                    Rom.FormatValue(snesTScore, playStationTScore),
+                    Rom.FormatValue(snesTScore99, playStationTScore99))));
+            }
             snesTScore = Math.Round(pilotTScoreParametersSet.SnesEncountered.GetTScoreParameter(pilotTScoreParameterIndex).CalculateTScore(snesValue));
-            playStationTScore = Math.Round(pilotTScoreParametersSet.PlayStationEncountered.GetTScoreParameter(pilotTScoreParameterIndex99).CalculateTScore(snesValue99));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText,Rom.FormatValue(snesTScore, playStationTScore)));
+            playStationTScore = Math.Round(pilotTScoreParametersSet.PlayStationEncountered.GetTScoreParameter(pilotTScoreParameterIndex).CalculateTScore(playstationValue));
+
+            snesTScore99 = Math.Round(pilotTScoreParametersSet.SnesEncountered.GetTScoreParameter(pilotTScoreParameterIndex99).CalculateTScore(snesValue99));
+            playStationTScore99 = Math.Round(pilotTScoreParametersSet.SnesEncountered.GetTScoreParameter(pilotTScoreParameterIndex99).CalculateTScore(playstationValue99));
+
+            if (snesTScore == snesTScore99 && playStationTScore == playStationTScore99)
+            {
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText,
+                    Rom.FormatValue(snesTScore, playStationTScore)));
+            }
+            else
+            {
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText,
+                    string.Format("{0}→{1}",
+                    Rom.FormatValue(snesTScore, playStationTScore),
+                    Rom.FormatValue(snesTScore99, playStationTScore99))));
+            }
+
             var growthType = string.Empty;
             if (snesNearGrowthType != 0 || playstationGrowthType != 0)
             {

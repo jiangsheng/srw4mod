@@ -269,7 +269,9 @@ namespace Entities
             }
             else
             {
-                row.AppendLine(string.Format("     - \\ :ref:`{0} <srw4_unit_{1}>`\\ ", FirstOwner.Name, RstHelper.GetLabelName(FirstOwner.EnglishName)));
+                row.AppendLine(string.Format("     - \\ :ref:`{0} <srw4_unit_{1}>`\\ {2}", FirstOwner.Name, RstHelper.GetLabelName(FirstOwner.EnglishName),
+                    
+                    string.IsNullOrEmpty(FirstOwner.ChineseName)?string.Empty: string.Format(" ({0})", FirstOwner.ChineseName)));
             }
 
             return row.ToString();

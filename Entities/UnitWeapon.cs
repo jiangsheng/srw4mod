@@ -15,7 +15,6 @@ namespace Entities
         public byte AmmoSlot { get; set; }
         public byte AvailableAtStage { get; set; }
         public Unit? FirstOwner { get; set; }
-
         public Weapon? Weapon { get; set; }
         public Unit? Unit { get; set; }
 
@@ -28,7 +27,10 @@ namespace Entities
             stringBuilder.AppendFormat("\t名: {0}", Weapon?.GetNameWithAttributes());
             stringBuilder.AppendFormat("\t伤害: {0}", Weapon?.Damage);
             stringBuilder.AppendFormat("\t程: {0}", Weapon?.MaxRange);
-
+            if (Weapon?.TerrainAdaptionSet != null)
+            {
+                stringBuilder.AppendFormat("\t地形适应: {0}", Weapon?.TerrainAdaptionSet.ToString());
+            }
             if (Weapon?.MaxAmmo > 0)
             {
                 stringBuilder.AppendFormat("\t弹数: {0}", Weapon?.MaxAmmo);

@@ -6,6 +6,7 @@ using HtmlAgilityPack;
 using System.Diagnostics;
 using System.Formats.Asn1;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Runtime.Intrinsics.Arm;
 using System.Text;
@@ -17,12 +18,13 @@ namespace Srw4Mod
     {
         static void Main(string[] args)
         {
-            var units=DownloadUnitData();
-            var pilots=DownloadPilotData();
+            var units = DownloadUnitData();
+            var pilots = DownloadPilotData();
             var weapons = DownloadWeaponData();
             var appdataPath = System.Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             var settingFilePath = Path.Combine(appdataPath, "srw4mod");
-            if (!Directory.Exists(settingFilePath)) {
+            if (!Directory.Exists(settingFilePath))
+            {
                 Directory.CreateDirectory(settingFilePath);
             }
             settingFilePath = Path.Combine(settingFilePath, "config.json");
@@ -54,12 +56,12 @@ namespace Srw4Mod
                 return;
             }
             byte[] snesData = File.ReadAllBytes(snesDataPath);
-            byte[] playStationData=File.ReadAllBytes(playStationDataPath);
-            Franchise.Franchises= LoadFranchises();
+            byte[] playStationData = File.ReadAllBytes(playStationDataPath);
+            Franchise.Franchises = LoadFranchises();
 
             var comments = DownloadComments(Franchise.Franchises);
 
-            Rom playstationRom = Rom.Parse(playStationData, weapons, units, pilots, 
+            Rom playstationRom = Rom.Parse(playStationData, weapons, units, pilots,
                 0x2E800, 0x2E800, 0x2D90
                 , 0x26000, 0x26000, 0x361A
                 , 0x2a800, 0x2a800, true
@@ -67,7 +69,7 @@ namespace Srw4Mod
             Rom snesRom = Rom.Parse(snesData, weapons, units, pilots,
                 0xbc950, 0xb0000, 0xf6f0
                 , 0xb9311, 0xb0000, 0xc92e
-                ,0xb7012, 0xb0000, false
+                , 0xb7012, 0xb0000, false
                 );
             playstationRom.WriteCsv();
             snesRom.WriteCsv();
@@ -88,7 +90,7 @@ namespace Srw4Mod
             Debug.Assert(playstationRomUnits.Where(u => u.Id == 1).First().PreferredPilotId == 250);
             var unitsFolder = Path.Combine(Environment.CurrentDirectory, "units");
             var pilotsFolder = Path.Combine(Environment.CurrentDirectory, "pilots");
-            if(!Directory.Exists(unitsFolder))
+            if (!Directory.Exists(unitsFolder))
             {
                 Directory.CreateDirectory(unitsFolder);
             }
@@ -102,10 +104,11 @@ namespace Srw4Mod
 
             Franchise.WritePilotRst(pilotsFolder, pilots, snesRom, playstationRom, comments);
 
-           
+            
             DumpData(playstationRom.Pilots);
-            //DumpData(playstationRom.Units);
-            //DumpData(playstationRom.Weapons);
+            DumpData(playstationRom.Units);
+            DumpData(playstationRom.Weapons);
+           
         }
 
 

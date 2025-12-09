@@ -61,6 +61,18 @@ namespace Entities {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to .. contents:: 
+        ///   :depth: 2
+        ///   :local:
+        ///   :backlinks: none.
+        /// </summary>
+        internal static string RstTocTree2 {
+            get {
+                return ResourceManager.GetString("RstTocTree2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to     .. grid-item::
         ///        :columns: auto
         ///.
@@ -96,8 +108,9 @@ namespace Entities {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to     .. grid-item::{0}
+        ///   Looks up a localized string similar to     .. grid-item:: {0}
         ///        :columns: auto
+        ///
         ///.
         /// </summary>
         internal static string RstUnitGridColumnAutoWithText {
