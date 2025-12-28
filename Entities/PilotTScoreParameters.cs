@@ -51,6 +51,8 @@ namespace Entities
 
             TScoreParametersList.Add(new TScoreParameters(
                samples.Select(sample => (int)sample.StartSP).ToList()
+               )); TScoreParametersList.Add(new TScoreParameters(
+               samples.Select(sample => sample.GetDoubleActLevel()).ToList()
                ));
         }
 
@@ -69,6 +71,7 @@ namespace Entities
     public enum PilotTScoreParameterIndex
     {
         Experience, NearAttack, NearAttack99, FarAttack, FarAttack99, Accuracy, Accuracy99,
-        Evasion, Evasion99, Intuition, Intuition99, Skill, Skill99, StartSP,Count
+        Evasion, Evasion99, Intuition, Intuition99, Skill, Skill99, StartSP,
+        DoubleActLevel,Count
     }
 }

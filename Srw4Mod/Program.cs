@@ -108,7 +108,29 @@ namespace Srw4Mod
             DumpData(playstationRom.Pilots);
             DumpData(playstationRom.Units);
             DumpData(playstationRom.Weapons);
-           
+            var testPilot = playstationRom.Pilots.Where(p => p.Id == 0x08).First();
+
+            byte[] flags=new byte[0x12];
+            for(int i=0;i<flags.Length;i++)
+            {
+                flags[i]= playStationData[testPilot.BaseOffset+i];
+            }
+            var friendlyPilots=playstationRom.Pilots.Where(p => p.Affiliation == "自"
+            && p.Id>0x0f).ToList();
+
+
+            foreach(var pilot in friendlyPilots)
+            {
+                for (int i = 0; i < flags.Length; i++)
+                {
+                    flags[i] &=(byte)( ~playStationData[pilot.BaseOffset + i]);
+                }
+            }
+            for(int i=0;i<flags.Length;i++)
+            {
+                if(flags[i]!=0)
+                Debug.Write(string.Format("Flag {0:X2}: {1:X2}", i, flags[i]));
+            }
         }
 
 

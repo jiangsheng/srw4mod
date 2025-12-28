@@ -234,16 +234,16 @@ namespace Entities
             stringBuilder.AppendFormat("\t 颜: {0:X}:{1}", BaseOffset, FaceId);
             stringBuilder.AppendFormat("\t 游戏作: {0:X}:{1:X}({2})", BaseOffset + 0x01, FranchiseId, Franchise.FormatFranchise(FranchiseId));
             if (PlayStationFranchise2 != 0)
-                stringBuilder.AppendFormat("\t PS游戏作: {0:X}:{1}", BaseOffset + 0x02, Franchise.FormatPlayStationFranchise2(PlayStationFranchise2));
-            stringBuilder.AppendFormat("\t 换乘: {0:X}:{1:X}", BaseOffset + (this.IsPlayStation ? 3 : 2), TransferFranchiseId);
+                stringBuilder.AppendFormat("\t PS游戏作: {0:X}:{1}({2})", BaseOffset + 0x02, PlayStationFranchise2,Franchise.FormatPlayStationFranchise2(PlayStationFranchise2));
+            stringBuilder.AppendFormat("\t 换乘: {0:X}:{1:X}", BaseOffset + (this.IsPlayStation ? 3 : 2), TransferFranchiseId+(IsFemale?0x80:0)+(IsFixedSeat?0x40:0)+ Personality*16);
             if (IsFemale)
                 stringBuilder.Append("\t 女");
             if (IsFixedSeat)
                 stringBuilder.Append("\t 換乘不可");
             stringBuilder.AppendFormat("\t 性格: {0}", FormatPersonality(Personality));
             stringBuilder.AppendFormat("\t 经验: {0}", Experience);
-            stringBuilder.AppendFormat("\t 能力增长模式: {0},{1},{2},{3},{4},{5},{6}",
-                NearGrowthType, FarGrowthType, AccuracyGrowthType, SkillGrowthType, EvasionGrowthType, IntuitionGrowthType, SPGrowthType);
+            stringBuilder.AppendFormat("\t 能力增长模式: 近{0},远{1},命{2},技{3},回{4},直{5},SP{6}",
+                GetNearGrowthType(), GetFarGrowthType(), GetAccuracyGrowthType(), GetSkillGrowthType(), GetEvasionGrowthType(), GetIntuitionGrowthType(), SPGrowthType);
 
             stringBuilder.AppendFormat("\r\n 地形适应: {0:X}:{1}({2})",
                 BaseOffset + (this.IsPlayStation ? 9 : 8),
@@ -256,6 +256,7 @@ namespace Entities
             stringBuilder.AppendFormat("\t 回: {0}", Evasion);
             stringBuilder.AppendFormat("\t 直: {0}", Intuition);
             stringBuilder.AppendFormat("\t SP: {0}", StartSP);
+            stringBuilder.AppendFormat("\t 二动等级: {0}", GetDoubleActLevel());
             stringBuilder.Append("\r\n 精神/技能:");
             stringBuilder.AppendLine(FormatSpiritCommandsOrSkills(SpiritCommandsOrSkills, true, '\t'));
             return stringBuilder.ToString();
@@ -298,11 +299,12 @@ namespace Entities
             row.AppendLine(string.Format("     - {0}", this.Accuracy99()));
             row.AppendLine(string.Format("     - {0}", this.Intuition99()));
             row.AppendLine(string.Format("     - {0}", this.Skill99()));
-            row.AppendLine(string.Format("     - {0}", this.StartSP));
+            row.AppendLine(string.Format("     - {0}", this.StartSP));            
             row.AppendLine(string.Format("     - {0}", TerrainAdaptionSet.FormatTerrainAdaption(this.TerrainAdaptionAir)));
             row.AppendLine(string.Format("     - {0}", TerrainAdaptionSet.FormatTerrainAdaption(this.TerrainAdaptionLand)));
             row.AppendLine(string.Format("     - {0}", TerrainAdaptionSet.FormatTerrainAdaption(this.TerrainAdaptionSea)));
             row.AppendLine(string.Format("     - {0}", TerrainAdaptionSet.FormatTerrainAdaption(this.TerrainAdaptionSpace)));
+            row.AppendLine(string.Format("     - {0}", this.GetDoubleActLevel()));
             row.AppendLine(string.Format("     - {0}", FormatSpiritCommandsOrSkills(SpiritCommandsOrSkills, false, ',')));
 
             return row.ToString();
@@ -443,6 +445,35 @@ namespace Entities
             }
             return string.Empty;
         }
+        public int GetDoubleActLevel()
+        {
+            switch (this.IntuitionGrowthType)
+            {
+                case 1://ファ＝ユイリィ, +10
+                    return GetDoubleActLevelWithGrowth(this.Intuition, 
+                        new int[] { 18, 25, 31, 32, 33, 34, 35, 36, 37,38 });
+                case 2://ショウ＝ザマ,+5
+                    return GetDoubleActLevelWithGrowth(this.Intuition,
+                        new int[] { 18, 25, 31, 34, 36 });
+            }
+
+            return 130 - this.Intuition;
+        }
+
+        private int GetDoubleActLevelWithGrowth(byte intuition, int[] bonusLevels)
+        {
+            int bonus= 0;
+            foreach (var bonusLevel in bonusLevels)
+            {           
+                if (intuition >= 130 - bonusLevel - bonus)
+                {
+                    return 130 - intuition - bonus;
+                }
+                bonus++;
+            }
+            return 130 - intuition - bonus;
+        }
+
         public int NearAttack99()
         {
             int result = this.NearAttack + 52;
@@ -654,6 +685,13 @@ namespace Entities
             stringBuilder.AppendLine();
             stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnAutoWithText, string.Format("英文:{0}。", pilotMetaData.EnglishName)));
 
+            stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnAutoWithText, string.Format("二动等级:{0}。", Rom.FormatValue(snesPilot.GetDoubleActLevel(), playstationPilot.GetDoubleActLevel()))));
+
+            var snesTScore = Math.Round(pilotTScoreParametersSet.SnesOwned.GetTScoreParameter(PilotTScoreParameterIndex.DoubleActLevel).CalculateTScore(snesPilot.GetDoubleActLevel()));
+            var playStationTScore = Math.Round(pilotTScoreParametersSet.PlayStationOwned.GetTScoreParameter(PilotTScoreParameterIndex.DoubleActLevel).CalculateTScore(playstationPilot.GetDoubleActLevel()));
+
+            stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnAutoWithText, string.Format("偏差值:{0}。", Rom.FormatValue(snesTScore, playStationTScore))));
+
             if (pilotMetaData.FirstAppearance > 0)
             {
                 stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnAutoWithText, string.Format("登场/加入:第{0}话。", pilotMetaData.FirstAppearance)));
@@ -667,6 +705,7 @@ namespace Entities
             stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnAutoWithText, string.Format("编码:{0:X2}。", pilotId)));
             stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnAutoWithText, string.Format("地址:{0:X} ({1:X})。", snesPilot.BaseOffset, playstationPilot.BaseOffset)));
             stringBuilder.AppendLine(string.Format(Resource.RstUnitGridColumnAutoWithText, string.Format("精神地址:{0:X}({1:X})。", snesPilot.BaseOffset + 0x11, playstationPilot.BaseOffset + 0x12)));
+
             if (snesPilot.TerrainAdaptionSet == null) throw new ArgumentNullException("snesPilot.TerrainAdaptionSet ");
             if (playstationPilot.TerrainAdaptionSet == null) throw new ArgumentNullException("playstationPilot.TerrainAdaptionSet ");
             
@@ -695,90 +734,92 @@ namespace Entities
                     string.Format("{0}。", string.Join("、", fixedSeatUnitList)))));
                 }
             }
+            if (snesPilot.NearAttack > 0)
+            {
+                stringBuilder.Append(Resource.RstUnitGridHeader);
+                stringBuilder.AppendLine();
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "近攻击"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "己偏差值"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "全偏差值"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "成长率"));
 
-            stringBuilder.Append(Resource.RstUnitGridHeader);
-            stringBuilder.AppendLine();
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "近攻击"));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "己偏差值"));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "全偏差值"));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "成长率"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "回避"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "己偏差值"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "全偏差值"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "成长率"));
 
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "回避"));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "己偏差值"));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "全偏差值"));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "成长率"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "直感"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "己偏差值"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "全偏差值"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "成长率"));
+                stringBuilder.Append(Resource.RstUnitGridColumnBreak);
 
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "直感"));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "己偏差值"));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "全偏差值"));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "成长率"));
-            stringBuilder.Append(Resource.RstUnitGridColumnBreak);
+                WriteAttributeWithTScore(stringBuilder, pilotTScoreParametersSet,
+                    snesPilot.NearAttack, playstationPilot.NearAttack,
+                    snesPilot.NearAttack99(), playstationPilot.NearAttack99(),
+                    PilotTScoreParameterIndex.NearAttack, PilotTScoreParameterIndex.NearAttack99,
+                    snesPilot.NearGrowthType, playstationPilot.NearGrowthType,
+                    snesPilot.GetNearGrowthType(), playstationPilot.GetNearGrowthType()
+                    );
 
-            WriteAttributeWithTScore(stringBuilder, pilotTScoreParametersSet,
-                snesPilot.NearAttack, playstationPilot.NearAttack,
-                snesPilot.NearAttack99(), playstationPilot.NearAttack99(),
-                PilotTScoreParameterIndex.NearAttack, PilotTScoreParameterIndex.NearAttack99,
-                snesPilot.NearGrowthType, playstationPilot.NearGrowthType,
-                snesPilot.GetNearGrowthType(), playstationPilot.GetNearGrowthType()
-                );
-
-            WriteAttributeWithTScore(stringBuilder, pilotTScoreParametersSet,
-                snesPilot.Evasion, playstationPilot.Evasion,
-                snesPilot.Evasion99(), playstationPilot.Evasion99(),
-                PilotTScoreParameterIndex.Evasion, PilotTScoreParameterIndex.Evasion99,
-                snesPilot.EvasionGrowthType, playstationPilot.EvasionGrowthType,
-                snesPilot.GetEvasionGrowthType(), playstationPilot.GetEvasionGrowthType()
-                );
+                WriteAttributeWithTScore(stringBuilder, pilotTScoreParametersSet,
+                    snesPilot.Evasion, playstationPilot.Evasion,
+                    snesPilot.Evasion99(), playstationPilot.Evasion99(),
+                    PilotTScoreParameterIndex.Evasion, PilotTScoreParameterIndex.Evasion99,
+                    snesPilot.EvasionGrowthType, playstationPilot.EvasionGrowthType,
+                    snesPilot.GetEvasionGrowthType(), playstationPilot.GetEvasionGrowthType()
+                    );
 
 
-            WriteAttributeWithTScore(stringBuilder, pilotTScoreParametersSet,
-                snesPilot.Intuition, playstationPilot.Intuition,
-                snesPilot.Intuition99(), playstationPilot.Intuition99(),
-                PilotTScoreParameterIndex.Intuition, PilotTScoreParameterIndex.Intuition99,
-                snesPilot.IntuitionGrowthType, playstationPilot.IntuitionGrowthType,
-                snesPilot.GetIntuitionGrowthType(), playstationPilot.GetIntuitionGrowthType()
-                );
+                WriteAttributeWithTScore(stringBuilder, pilotTScoreParametersSet,
+                    snesPilot.Intuition, playstationPilot.Intuition,
+                    snesPilot.Intuition99(), playstationPilot.Intuition99(),
+                    PilotTScoreParameterIndex.Intuition, PilotTScoreParameterIndex.Intuition99,
+                    snesPilot.IntuitionGrowthType, playstationPilot.IntuitionGrowthType,
+                    snesPilot.GetIntuitionGrowthType(), playstationPilot.GetIntuitionGrowthType()
+                    );
 
-            stringBuilder.Append(Resource.RstUnitGridColumnBreak);
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "远攻击"));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "己偏差值"));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "全偏差值"));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "成长率"));
+                stringBuilder.Append(Resource.RstUnitGridColumnBreak);
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "远攻击"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "己偏差值"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "全偏差值"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "成长率"));
 
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "命中"));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "己偏差值"));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "全偏差值"));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "成长率"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "命中"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "己偏差值"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "全偏差值"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "成长率"));
 
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "技量"));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "己偏差值"));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "全偏差值"));
-            stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "成长率"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "技量"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "己偏差值"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "全偏差值"));
+                stringBuilder.Append(string.Format(Resource.RstUnitGridColumnWithText, "成长率"));
 
-            stringBuilder.Append(Resource.RstUnitGridColumnBreak);
-            WriteAttributeWithTScore(stringBuilder, pilotTScoreParametersSet,
-                 snesPilot.FarAttack, playstationPilot.FarAttack,
-                 snesPilot.FarAttack99(), playstationPilot.FarAttack99(),
-                 PilotTScoreParameterIndex.FarAttack, PilotTScoreParameterIndex.FarAttack99,
-                 snesPilot.FarGrowthType, playstationPilot.FarGrowthType,
-                 snesPilot.GetFarGrowthType(), playstationPilot.GetFarGrowthType()
-             );
+                stringBuilder.Append(Resource.RstUnitGridColumnBreak);
+                WriteAttributeWithTScore(stringBuilder, pilotTScoreParametersSet,
+                     snesPilot.FarAttack, playstationPilot.FarAttack,
+                     snesPilot.FarAttack99(), playstationPilot.FarAttack99(),
+                     PilotTScoreParameterIndex.FarAttack, PilotTScoreParameterIndex.FarAttack99,
+                     snesPilot.FarGrowthType, playstationPilot.FarGrowthType,
+                     snesPilot.GetFarGrowthType(), playstationPilot.GetFarGrowthType()
+                 );
 
-            WriteAttributeWithTScore(stringBuilder, pilotTScoreParametersSet,
-                 snesPilot.Accuracy, playstationPilot.Accuracy,
-                 snesPilot.Accuracy99(), playstationPilot.Accuracy99(),
-                 PilotTScoreParameterIndex.Accuracy, PilotTScoreParameterIndex.Accuracy99,
-                 snesPilot.AccuracyGrowthType, playstationPilot.AccuracyGrowthType,
-                 snesPilot.GetAccuracyGrowthType(), playstationPilot.GetAccuracyGrowthType()
-             );
+                WriteAttributeWithTScore(stringBuilder, pilotTScoreParametersSet,
+                     snesPilot.Accuracy, playstationPilot.Accuracy,
+                     snesPilot.Accuracy99(), playstationPilot.Accuracy99(),
+                     PilotTScoreParameterIndex.Accuracy, PilotTScoreParameterIndex.Accuracy99,
+                     snesPilot.AccuracyGrowthType, playstationPilot.AccuracyGrowthType,
+                     snesPilot.GetAccuracyGrowthType(), playstationPilot.GetAccuracyGrowthType()
+                 );
 
-            WriteAttributeWithTScore(stringBuilder, pilotTScoreParametersSet,
-                 snesPilot.Skill, playstationPilot.Skill,
-                 snesPilot.Skill99(), playstationPilot.Skill99(),
-                 PilotTScoreParameterIndex.Skill, PilotTScoreParameterIndex.Skill99,
-                 snesPilot.SkillGrowthType, playstationPilot.SkillGrowthType,
-                 snesPilot.GetSkillGrowthType(), playstationPilot.GetSkillGrowthType()
-             );
+                WriteAttributeWithTScore(stringBuilder, pilotTScoreParametersSet,
+                     snesPilot.Skill, playstationPilot.Skill,
+                     snesPilot.Skill99(), playstationPilot.Skill99(),
+                     PilotTScoreParameterIndex.Skill, PilotTScoreParameterIndex.Skill99,
+                     snesPilot.SkillGrowthType, playstationPilot.SkillGrowthType,
+                     snesPilot.GetSkillGrowthType(), playstationPilot.GetSkillGrowthType()
+                 );
+            }
         }
 
         private static void WriteAttributeWithTScore(StringBuilder stringBuilder, PilotTScoreParametersSet pilotTScoreParametersSet,

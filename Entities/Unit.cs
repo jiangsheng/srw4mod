@@ -33,6 +33,8 @@ namespace Entities
         public byte UnitSizeBit { get; set; }
         public byte BackgroundMusic { get; set; }
         public byte TransformOrCombineType { get; set; }
+        public byte UnitSpecialSkill1 { get; set; }
+        public byte UnitSpecialSkill2 { get; set; }
 
         public byte UnknownUnitSpecialSkill1 { get; set; }
         public byte UnknownUnitSpecialSkill2 { get; set; }
@@ -218,9 +220,12 @@ namespace Entities
             //offset 7
             unit.TransformOrCombineType = unitData[offset++];
             //offset 8
-            var unitSpecialSkill1 = unitData[offset++];
+            unit.UnitSpecialSkill1 = unitData[offset++];
             //offset 9
-            var unitSpecialSkill2 = unitData[offset++];
+            unit.UnitSpecialSkill2 = unitData[offset++];
+            var unitSpecialSkill1 = unit.UnitSpecialSkill1;
+            var unitSpecialSkill2 = unit.UnitSpecialSkill2;
+
             unit.IsAggressive = (unitSpecialSkill1 & 0x1) != 0;
             unit.HasEnergyRecovery = (unitSpecialSkill1 & 0x02) != 0;
             unit.HPRecoveryType = (byte)(unitSpecialSkill1 & 0x0C);
@@ -339,7 +344,7 @@ namespace Entities
             stringBuilder.AppendFormat("\t可废弃: {0}", Discardable ? "是" : "否");
             stringBuilder.AppendFormat("\tBGM: {0:X}", BackgroundMusic);
             stringBuilder.AppendFormat("\r\n合体分离变形种类: {0:X}:{1:X}", BaseOffset + 7, TransformOrCombineType);
-            stringBuilder.AppendFormat("\t技能1: {0:X}", BaseOffset + 8);
+            stringBuilder.AppendFormat("\t技能1: {0:X}:{1:X}", BaseOffset + 8,UnitSpecialSkill1);
             if (!IsAggressive)
             {
                 stringBuilder.Append("\t不攻击");
@@ -370,7 +375,7 @@ namespace Entities
                 stringBuilder.AppendFormat("\t未知技能1 {0:X} ", UnknownUnitSpecialSkill1);
             }
 
-            stringBuilder.AppendFormat("\t技能2: {0:X}", BaseOffset + 9);
+            stringBuilder.AppendFormat("\t技能2: {0:X}:{1:X}", BaseOffset + 9,UnitSpecialSkill2);
 
             switch (BeamCoatType)
             {
@@ -389,7 +394,7 @@ namespace Entities
             }
             if (IsCarrier)
             {
-                stringBuilder.Append("\t盾装備");
+                stringBuilder.Append("\t搭载");
             }
             if (HasNextStage)
             {
