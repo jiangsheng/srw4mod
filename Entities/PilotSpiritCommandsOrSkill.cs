@@ -22,12 +22,12 @@ namespace Entities
            
         public byte SpiritCommandsOrSkill {  get; set; }
         public int AcquireAtLevel{ get; set; }
-        public int BaseAddress { get; set; }
+        public int BaseOffset { get; set; }
         static List<string> SpiritCommandNames = new List<string>();
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append(Format(this.BaseAddress, this.SpiritCommandsOrSkill, 0, false));
+            sb.Append(Format(this.BaseOffset, this.SpiritCommandsOrSkill, 0, false));
             sb.Append(string.Format(" {0}", this.AcquireAtLevel));
             return sb.ToString();
         }

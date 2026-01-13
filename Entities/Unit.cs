@@ -52,7 +52,7 @@ namespace Entities
         public byte Team { get; set; }
 
         [Ignore]
-        public byte[]? UnknownBytes { get; set; }
+        public byte[] UnknownBytes { get; set; }
         public byte Experience { get; set; }
 
         public ushort Gold { get; set; }
@@ -109,28 +109,33 @@ namespace Entities
         public int FirstAppearance { get; set; }
 
         public int PreferredPilotId { get; set; }
-        public static List<Unit>? Parse(byte[] unitData, int headerStartOffset, int offsetBase, int footerOffset, List<UnitMetaData> unitMetaData, List<Weapon> weapons)
+        [Optional]
+        public string? DisplayName { get; internal set; }
+        [Ignore]         
+        public int DisplayNameOffset { get; private set; }
+
+        public static List<Unit>? Parse(ReadOnlySpan<byte> romData, IndexTable indexTable, List<UnitMetaData> unitMetaData, List<Weapon> weapons, List<EntityName> unitNames)
         {
-            var magicMark = BitConverter.ToUInt16(unitData, headerStartOffset);
-            Debug.Assert(magicMark == 0);
-
-            var firstUnitOffset = BitConverter.ToUInt16(unitData, headerStartOffset + 2);
-
-            var unitList = new List<Unit>();
-
-            for (int unitIndex = 1; unitIndex < firstUnitOffset / 2; unitIndex++)
+            var result = new List<Unit>();
+            var indexedLocations = indexTable.Read(romData);
+            int unitId = 0;
+            foreach (var location in indexedLocations)
             {
-                var unitOffset = BitConverter.ToUInt16(unitData, headerStartOffset + unitIndex * 2);
-                if (unitOffset == 0) continue;//no data at this address
-                if (unitOffset >= footerOffset) break;//reached footer
-                Unit unit = ParseUnit(unitData, offsetBase + unitOffset, unitIndex);
-                FixUnitData(unit, unitMetaData, weapons);
-                unitList.Add(unit);
+                if (location != 0)
+                {
+                    var unit = ParseUnit(romData.Slice(location, 256), location, unitId);
+                    if (unit != null)
+                    {
+                        FixUnitData(unit, unitMetaData, weapons, unitNames);
+                        result.Add(unit);
+                    }
+                }
+                unitId++;
             }
-            return unitList.Where(u => (u.Affiliation != null && !u.Affiliation.Equals(""))).OrderBy(u => u.Id).ToList();
+            return result;
         }
 
-        private static void FixUnitData(Unit unit, List<UnitMetaData> unitMetaData, List<Weapon> weapons)
+        private static void FixUnitData(Unit unit, List<UnitMetaData> unitMetaData, List<Weapon> weapons, List<EntityName> unitNames)
         {
             var fixUnit = unitMetaData.Where(u => u.Id == unit.Id).FirstOrDefault();
             if (fixUnit == null)
@@ -155,6 +160,19 @@ namespace Entities
             unit.FirstAppearance = fixUnit.FirstAppearance;
             unit.ChineseName = fixUnit.ChineseName;
             unit.PreferredPilotId = fixUnit.PreferredPilotId;
+
+            var unitName = unitNames.Where(u => u.Id == unit.Id).FirstOrDefault();
+            if (unitName != null)
+            {
+                unit.DisplayName = unitName.Name?.Replace("[0]", unit.Name)
+                    .Replace("[1]", "ヒュッケバイン")
+                    .Replace("[2]", "ウイングガスト")
+                    .Replace("[3]", "ウイングガスト")
+                    .Replace("[4]", "ガストランダー")
+                    .Replace("[5]", "ガストランダー");
+
+                unit.DisplayNameOffset = unitName.Offset;
+            }
             if (unit.FixedSeatPilotId != 0)
             {
                 unit.PreferredPilotId = unit.FixedSeatPilotId;
@@ -173,25 +191,28 @@ namespace Entities
             {
                 foreach (var unitWeapon in unit.Weapons)
                 {
-                    var fixWeapon = weapons.Where(w => w.Id == unitWeapon.WeaponIndex).First();
-                    if (!fixWeapon.HasAssignedOwner)
+                    var fixWeapon = weapons.Where(w => w.Id == unitWeapon.WeaponIndex).FirstOrDefault();
+                    if (fixWeapon!=null)
                     {
-                        fixWeapon.HasAssignedOwner = true;
-                        fixWeapon.FirstOwner = unit;
-                    }
-                    unitWeapon.FirstOwner = fixWeapon.FirstOwner;
+                        if (!fixWeapon.HasAssignedOwner)
+                        {
+                            fixWeapon.HasAssignedOwner = true;
+                            fixWeapon.FirstOwner = unit;
+                        }
+                        unitWeapon.FirstOwner = fixWeapon.FirstOwner;
 
-                    unitWeapon.Weapon = fixWeapon;
+                        unitWeapon.Weapon = fixWeapon;                        
+                    }
                     unitWeapon.Unit = unit;
                 }
             }
         }
 
-        private static Unit ParseUnit(byte[] unitData, int baseOffset, int unitIndex)
+        private static Unit ParseUnit(ReadOnlySpan<byte> unitData, int baseOffset, int unitIndex)
         {
             Unit unit = new Unit();
             unit.BaseOffset = baseOffset;
-            int offset = baseOffset;
+            int offset = 0;
             //offset 0
             byte iconId1 = unitData[offset++];
             //offset 1
@@ -204,7 +225,7 @@ namespace Entities
             unit.Id = unitIndex;
             unit.FranchiseId = (byte)(fanchiseId & 0xFE);
             //offset 2,3
-            unit.PortraitId = BitConverter.ToUInt16(unitData, offset);
+            unit.PortraitId = BitConverter.ToUInt16(unitData.Slice(offset, 2));
             offset += 2;
             //offset 4
             unit.FixedSeatPilotId = unitData[offset++];
@@ -243,15 +264,15 @@ namespace Entities
             //offset A
             unit.Team = unitData[offset++];
             //offset B,C,D,E
-            unit.UnknownBytes = unitData.Skip(offset).Take(4).ToArray();
+            unit.UnknownBytes = unitData.Slice(offset,4).ToArray();
             offset += 4;
             //offset F
             unit.Experience = unitData[offset++];
             //offset 10,11
-            unit.Gold = BitConverter.ToUInt16(unitData, offset);
+            unit.Gold = BitConverter.ToUInt16(unitData.Slice(offset, 2));
             offset += 2;
             //offset 12,13
-            unit.RepairCost = BitConverter.ToUInt16(unitData, offset);
+            unit.RepairCost = BitConverter.ToUInt16(unitData.Slice(offset, 2));
             offset += 2;
             //offset 14
             unit.MoveRange = unitData[offset++];
@@ -277,7 +298,7 @@ namespace Entities
             //offset 1B
             unit.Energy = unitData[offset++];
             //offset 1C,1D
-            unit.HP = BitConverter.ToUInt16(unitData, offset);
+            unit.HP = BitConverter.ToUInt16(unitData.Slice(offset, 2));
             offset += 2;
             //offset 1E
             unit.WeaponCount = unitData[offset++];
@@ -288,17 +309,17 @@ namespace Entities
             Debug.Assert(unit.AmmoWeaponCount <= unit.WeaponCount);
             Debug.Assert(unit.WeaponCount < 0x20);
 
-            unit.FirstWeaponIndex = (ushort)(BitConverter.ToUInt16(unitData, offset) & 0x03FF);
+            unit.FirstWeaponIndex = (ushort)(BitConverter.ToUInt16(unitData.Slice(offset, 2)) & 0x03FF);
 
             //the last unit has no weapon 
             if (unit.WeaponCount > 0)
             {
                 unit.Weapons = new List<UnitWeapon>();
-                var weaponIndex = (ushort)(BitConverter.ToUInt16(unitData, offset));
+                var weaponIndex = (ushort)(BitConverter.ToUInt16(unitData.Slice(offset, 2)));
                 while (weaponIndex > 0)
                 {
                     UnitWeapon unitWeapon = new UnitWeapon();
-                    unitWeapon.BaseOffset = offset;
+                    unitWeapon.BaseOffset = baseOffset+offset;
                     unitWeapon.WeaponIndex = (ushort)(weaponIndex & 0x03FF);
                     unitWeapon.AmmoSlot = (byte)((unitData[offset + 1] & 0xFC) / 4);
                     //Debug.Assert(unitWeapon.AmmoSlot <= unit.AmmoWeaponCount);
@@ -331,20 +352,21 @@ namespace Entities
         {
             StringBuilder stringBuilder
                 = new StringBuilder();
-            stringBuilder.AppendFormat("Id: {0}", Id);
-            stringBuilder.AppendFormat("\t名: {0}\t\t{1}\t{2}", Name, EnglishName,ChineseName);
-            stringBuilder.AppendFormat("\t属: {0}", Affiliation);
-            stringBuilder.AppendFormat("\t作: {0}", FranchiseName);
-            stringBuilder.AppendFormat("\t图标: {0:X}:{1:X}:", BaseOffset, IconId);
-            stringBuilder.AppendFormat("\t游戏作:{0:X}:{1:X} ({2})", BaseOffset + 1, FranchiseId, Franchise.FormatFranchise(FranchiseId));
-            stringBuilder.AppendFormat("\t图像: {0:X}:{1:X}", BaseOffset + 2, PortraitId);
-            stringBuilder.AppendFormat("\t固定驾驶员: {0:X}:{1:X}", BaseOffset + 4, FixedSeatPilotId);
-            stringBuilder.AppendFormat("\t换乘组: {0:X}:{1:X}", BaseOffset + 5, TransferFranchiseId);
-            stringBuilder.AppendFormat("\t大小:{0:X}:{1:X} ({2})", BaseOffset + 6, UnitSize, FormatUnitSize(UnitSize));
-            stringBuilder.AppendFormat("\t可废弃: {0}", Discardable ? "是" : "否");
-            stringBuilder.AppendFormat("\tBGM: {0:X}", BackgroundMusic);
-            stringBuilder.AppendFormat("\r\n合体分离变形种类: {0:X}:{1:X}", BaseOffset + 7, TransformOrCombineType);
-            stringBuilder.AppendFormat("\t技能1: {0:X}:{1:X}", BaseOffset + 8,UnitSpecialSkill1);
+            stringBuilder.AppendFormat("Id:{0:x}", Id);
+            stringBuilder.AppendFormat("\t名:{0,6:x}:{1,20}\t{2,20}\t{3,20}\t{4,10}", DisplayNameOffset, DisplayName,Name, EnglishName,ChineseName);
+            stringBuilder.AppendFormat("\t属:{0,2}", Affiliation);
+            stringBuilder.AppendFormat("\t作:{0,-10}", FranchiseName);
+            stringBuilder.AppendFormat("\t图标:{0,6:X}:{1,3:X}:", BaseOffset, IconId);
+            stringBuilder.AppendFormat("\t游戏作:{0,6:X}:{1,2:X} ({2,-14})", BaseOffset + 1, FranchiseId, Franchise.FormatFranchise(FranchiseId));
+            stringBuilder.AppendFormat("\t图像:{0,6:X}:{1,2:X}", BaseOffset + 2, PortraitId);
+            stringBuilder.AppendFormat("\t固定驾驶员:{0,6:X}:{1,2:X}", BaseOffset + 4, FixedSeatPilotId);
+            stringBuilder.AppendFormat("\t换乘组:{0,6:X}:{1,1:X}", BaseOffset + 5, TransferFranchiseId);
+            stringBuilder.AppendFormat("\t大小:{0,6:X}:{1,2:X} ({2,-2})", BaseOffset + 6, UnitSize, FormatUnitSize(UnitSize));
+            if(Discardable)
+                stringBuilder.AppendFormat("\t可废弃");
+            stringBuilder.AppendFormat("\tBGM:{0:X}", BackgroundMusic);
+            stringBuilder.AppendFormat("\r\n合体分离变形种类: {0,6:X}:{1:X}", BaseOffset + 7, TransformOrCombineType);
+            stringBuilder.AppendFormat("\t技能1:{0,6:X}:{1:X}", BaseOffset + 8,UnitSpecialSkill1);
             if (!IsAggressive)
             {
                 stringBuilder.Append("\t不攻击");
@@ -369,13 +391,11 @@ namespace Entities
             {
                 stringBuilder.Append("\t激怒/自爆/てかげん無効");
             }
-
             if (UnknownUnitSpecialSkill1 != 0)
             {
                 stringBuilder.AppendFormat("\t未知技能1 {0:X} ", UnknownUnitSpecialSkill1);
             }
-
-            stringBuilder.AppendFormat("\t技能2: {0:X}:{1:X}", BaseOffset + 9,UnitSpecialSkill2);
+            stringBuilder.AppendFormat("\t技能2: {0,6:X}:{1:X}", BaseOffset + 9,UnitSpecialSkill2);
 
             switch (BeamCoatType)
             {
@@ -402,13 +422,10 @@ namespace Entities
             }
             if (UnknownUnitSpecialSkill2 != 0)
             {
-                stringBuilder.AppendFormat("\t未知技能2 {0:X} ", UnknownUnitSpecialSkill2);
+                stringBuilder.AppendFormat("\t未知技能2 {0,6:X} ", UnknownUnitSpecialSkill2);
             }
-            stringBuilder.AppendFormat("\t分队: {0:X}:{1:X}", BaseOffset + 0xa, Team);
-
+            stringBuilder.AppendFormat("\t分队: {0,6:X}:{1:X}", BaseOffset + 0xa, Team);
             stringBuilder.AppendFormat("\t未知数据{0}", Convert.ToHexString(this.UnknownBytes));
-
-
             stringBuilder.AppendFormat("\t经验: {0:X}:{1}", BaseOffset + 0xf, Experience);
             stringBuilder.AppendFormat("\t获得资金: {0:X}:{1}", BaseOffset + 0x10, Gold);
             stringBuilder.AppendFormat("\t修理费 RepairCost: {0:X}:{1}", BaseOffset + 0x12, RepairCost);
@@ -418,14 +435,14 @@ namespace Entities
             stringBuilder.AppendFormat("\t地形适应: {0:X}:{1}({2})", BaseOffset + 0x16,
                 Convert.ToHexString(this.TerrainAdaptionSet != null ? this.TerrainAdaptionSet.ToPilotOrUnitAdaptions() : new byte[] { }),
                 this.TerrainAdaptionSet?.ToString());
-            stringBuilder.AppendFormat("\t甲: {0:X}:{1}", BaseOffset + 0x18, Armor * 10);
-            stringBuilder.AppendFormat("\t运: {0:X}:{1}", BaseOffset + 0x19, Mobility);
-            stringBuilder.AppendFormat("\t限: {0:X}:{1}", BaseOffset + 0x1a, Limit);
-            stringBuilder.AppendFormat("\t能: {0:X}:{1}", BaseOffset + 0x1b, Energy);
-            stringBuilder.AppendFormat("\tHP: {0:X}:{1}", BaseOffset + 0x1c, HP);
-            stringBuilder.AppendFormat("\t武器数: {0:X}:{1}", BaseOffset + 0x1e, WeaponCount);
-            stringBuilder.AppendFormat("\t弹药槽数: {0:X}:{1}", BaseOffset + 0x1f, AmmoWeaponCount);
-            stringBuilder.AppendFormat("\t首武器地址: {0:X}", BaseOffset + 0x20);
+            stringBuilder.AppendFormat("\t甲: {0,6:X}:{1}", BaseOffset + 0x18, Armor * 10);
+            stringBuilder.AppendFormat("\t运: {0,6:X}:{1}", BaseOffset + 0x19, Mobility);
+            stringBuilder.AppendFormat("\t限: {0,6:X}:{1}", BaseOffset + 0x1a, Limit);
+            stringBuilder.AppendFormat("\t能: {0,6:X}:{1}", BaseOffset + 0x1b, Energy);
+            stringBuilder.AppendFormat("\tHP: {0,6:X}:{1}", BaseOffset + 0x1c, HP);
+            stringBuilder.AppendFormat("\t武器数: {0,6:X}:{1}", BaseOffset + 0x1e, WeaponCount);
+            stringBuilder.AppendFormat("\t弹药槽数: {0,6:X}:{1}", BaseOffset + 0x1f, AmmoWeaponCount);
+            stringBuilder.AppendFormat("\t首武器地址: {0,6:X}", BaseOffset + 0x20);
 
             if (WeaponCount > 0 && Weapons != null)
             {
@@ -433,7 +450,7 @@ namespace Entities
                 int weaponOrder = 1;
                 foreach (var weapon in Weapons)
                 {
-                    stringBuilder.AppendFormat("{0}:{1}\r\n", weaponOrder++, weapon.ToString());
+                    stringBuilder.AppendFormat("{0}:\t{1}\r\n", weaponOrder++, weapon.ToString());
                 }
             }
             return stringBuilder.ToString();
@@ -666,32 +683,34 @@ namespace Entities
             {
                 var weaponId = unitWeapon.WeaponIndex;
                 var snesWeapon = unitWeapon.Weapon;
-                if (snesWeapon == null) throw new ArgumentNullException(nameof(snesWeapon));
-
-                var snesWeaponName = snesWeapon.GetNameWithAttributes();
-
-                Weapon playstationWeapon = snesWeapon;
-                string playstationWeaponName = snesWeaponName;
-                if (playstationUnitWeaponDictionary.ContainsKey(weaponId))
+                if (snesWeapon != null)
                 {
-                    var playstationUnitWeaponInDictionary = playstationUnitWeaponDictionary[weaponId];
-                    if (playstationUnitWeaponInDictionary.Weapon != null)
+
+                    var snesWeaponName = snesWeapon.GetNameWithAttributes();
+
+                    Weapon playstationWeapon = snesWeapon;
+                    string playstationWeaponName = snesWeaponName;
+                    if (playstationUnitWeaponDictionary.ContainsKey(weaponId))
                     {
-                        playstationWeapon = playstationUnitWeaponInDictionary.Weapon;
-                        if (playstationWeapon != null)
-                            playstationWeaponName = playstationWeapon.GetNameWithAttributes();
+                        var playstationUnitWeaponInDictionary = playstationUnitWeaponDictionary[weaponId];
+                        if (playstationUnitWeaponInDictionary.Weapon != null)
+                        {
+                            playstationWeapon = playstationUnitWeaponInDictionary.Weapon;
+                            if (playstationWeapon != null)
+                                playstationWeaponName = playstationWeapon.GetNameWithAttributes();
+                        }
                     }
-                }
-                else
-                {
-                    snesWeaponName = string.Format("{0} (仅Snes)", snesWeaponName);
-                    playstationWeapon = snesWeapon;
-                    playstationWeaponName = snesWeaponName;
-                }
-                if (playstationWeapon == null) throw new ArgumentNullException(nameof(playstationWeapon));
-                RstAppendUnitWeapon(stringBuilder, snesUnit, playstationUnit, effectiveSnesUnitTerrainAdoptions, effectivePlayStationUnitTerrainAdoptions, snesWeapon, playstationWeapon, snesWeaponName, playstationWeaponName);
+                    else
+                    {
+                        snesWeaponName = string.Format("{0} (仅Snes)", snesWeaponName);
+                        playstationWeapon = snesWeapon;
+                        playstationWeaponName = snesWeaponName;
+                    }
+                    if (playstationWeapon == null) throw new ArgumentNullException(nameof(playstationWeapon));
+                    RstAppendUnitWeapon(stringBuilder, snesUnit, playstationUnit, effectiveSnesUnitTerrainAdoptions, effectivePlayStationUnitTerrainAdoptions, snesWeapon, playstationWeapon, snesWeaponName, playstationWeaponName);
 
-                playstationUnitWeaponDictionary.Remove(weaponId);
+                    playstationUnitWeaponDictionary.Remove(weaponId);
+                }
             }
             var playStationOnlyWeaponIndicess = playstationUnitWeaponDictionary.Keys.ToList();
             foreach (var playStationOnlyWeaponIndex in playStationOnlyWeaponIndicess)

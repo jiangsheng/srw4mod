@@ -21,6 +21,7 @@ namespace Entities
         public byte PilotQuote { get; set; }
         public ushort BattleAnimation { get; set; }
         public string? Name { get; set; }
+        public int NameOffset { get; private set; }
         public bool IsRepair { get; set; }
         public bool IsResupply { get; set; }
         public bool IsMap { get; set; }
@@ -73,48 +74,56 @@ namespace Entities
         public bool HasAssignedOwner { get; set; }
         public Unit? FirstOwner { get; set; }
 
-        public static List<Weapon>? Parse(byte[] weaponData, int headerStartOffset, int offsetBase, int footerOffset, List<WeaponMetaData> weaponMetaData)
+        public static List<Weapon>? Parse(ReadOnlySpan<byte> romData, IndexTable indexTable, List<EntityName> weaponNames)
         {
-            var magicMark = BitConverter.ToUInt16(weaponData, headerStartOffset);
-            Debug.Assert(magicMark == 0);
-
-            var firstWeaponAddressOffset = BitConverter.ToUInt16(weaponData, headerStartOffset + 2);
-
             var weaponList = new List<Weapon>();
-
-            for (int weaponIndex = 1; weaponIndex < firstWeaponAddressOffset; weaponIndex++)
-            {
-                var weaponOffset = BitConverter.ToUInt16(weaponData, headerStartOffset + weaponIndex * 2);
-                if (weaponOffset == 0) continue;//no data at this address
-                if (weaponOffset >= footerOffset) break;//reached footer
-                Weapon weapon = ParseWeapon(weaponData, offsetBase + weaponOffset, weaponIndex);
-                FixWeaponData(weapon, weaponMetaData);
-                weaponList.Add(weapon);
+            var indexedLocations = indexTable.Read(romData);
+            int weaponId = 0;
+            foreach (var location in indexedLocations) {
+                if (location != 0)
+                {
+                    var weapon = ParseWeapon(romData.Slice(location, 16), location, weaponId);
+                    if (weapon != null)
+                    {
+                        FixWeaponData(weapon, weaponNames);
+                        weaponList.Add(weapon);
+                    }
+                    else
+                        break;
+                }
+                weaponId++;
             }
             return weaponList;
         }
 
-        private static void FixWeaponData(Weapon weapon, List<WeaponMetaData> weaponMetaData)
+        private static void FixWeaponData(Weapon weapon, List<EntityName> weaponNames)
         {
-            var fixUnit = weaponMetaData.Where(u => u.Id == weapon.Id).FirstOrDefault();
-            if (fixUnit == null)
+            var fixWeaponMetaData = weaponNames.Where(u => u.Id == weapon.Id).FirstOrDefault();
+            if (fixWeaponMetaData == null)
             {
-                Debug.WriteLine(string.Format("unable to find unit with id {0}", weapon.Id));
+                Debug.WriteLine(string.Format("unable to find weapon with id {0}", weapon.Id));
                 return;
             }
-            if(fixUnit.Name!=null)
-                weapon.Name = fixUnit.Name.Trim()
-                    ;
+            if (fixWeaponMetaData.Name != null)
+            {
+                weapon.Name = fixWeaponMetaData.Name.Trim().Replace("[0]", "[グルンガスト]");
+                weapon.NameOffset = fixWeaponMetaData.Offset;
+            }
         }
 
-        private static Weapon ParseWeapon(byte[] weaponData, int baseOffset, int unitIndex)
+        private static Weapon? ParseWeapon(ReadOnlySpan<byte> data, int baseOffset, int weaponId)
         {
-            int offset = baseOffset;
+            if (data[15] == 0xFF)
+            { 
+                //some buggy rom has a full row ff
+                return null;
+            }
+            int offset = 0;
             Weapon weapon = new Weapon();
             weapon.BaseOffset = baseOffset;
-            weapon.Id = unitIndex;
+            weapon.Id = weaponId;
             //offset 0
-            weapon.TypeCode1 = weaponData[offset++];
+            weapon.TypeCode1 = data[offset++];
             switch (weapon.TypeCode1)
             {
                 case 0xDE:
@@ -133,46 +142,47 @@ namespace Entities
                     break;
             }
             //offset 1
-            weapon.TypeCode2 = weaponData[offset++];
+            weapon.TypeCode2 = data[offset++];
             weapon.IsDeflectable = (weapon.TypeCode2 & 0x20) != 0;
             weapon.IsBeam = (weapon.TypeCode2 & 0x80) != 0;
             weapon.IsPortable = (weapon.TypeCode2 & 0x40) == 0;
             weapon.TypeCode2LowerHalf = (byte)(weapon.TypeCode2 & 0x0f);
             //offset 2
-            weapon.PilotQuote = weaponData[offset++];
+            weapon.PilotQuote = data[offset++];
             //offset 3,4
-            weapon.BattleAnimation = BitConverter.ToUInt16(weaponData, offset);
+            weapon.BattleAnimation = BitConverter.ToUInt16(
+                data.Slice(offset,2));
             offset += 2;
             //offset 5,6
-            weapon.Damage = BitConverter.ToUInt16(weaponData, offset);
+            weapon.Damage = BitConverter.ToUInt16(data.Slice(offset, 2));
             Debug.Assert(weapon.Damage <= 18000);
             offset += 2;
             //offset 7
-            weapon.AccuracyBonus = (sbyte)weaponData[offset++];
+            weapon.AccuracyBonus = (sbyte)data[offset++];
             //offset 8
-            weapon.CriticalHitRateBonusAndUpgradeCostType = weaponData[offset++];
+            weapon.CriticalHitRateBonusAndUpgradeCostType = data[offset++];
             weapon.CriticalHitRateBonus = (sbyte)(((weapon.CriticalHitRateBonusAndUpgradeCostType & 0xF0) / 16) * 10 - 10);
             weapon.UpgradeCostType = (byte)(weapon.CriticalHitRateBonusAndUpgradeCostType & 0x0F);
             //offset 9
-            weapon.MinRange = weaponData[offset++];
+            weapon.MinRange = data[offset++];
             Debug.Assert(weapon.MinRange < 15);
             //offset a
-            weapon.MaxRange = weaponData[offset++];
+            weapon.MaxRange = data[offset++];
             Debug.Assert(weapon.MaxRange < 15);
             //offset b
-            byte terrainAdaptionByte= weaponData[offset++];
+            byte terrainAdaptionByte= data[offset++];
             weapon.TerrainAdaptionSet= TerrainAdaptionSet.FromWeaponAdaptions(terrainAdaptionByte);
             //offset c
-            weapon.MaxAmmo = weaponData[offset++];
+            weapon.MaxAmmo = data[offset++];
             Debug.Assert(weapon.MaxAmmo <= 50);
             //offset d
-            weapon.EnergyCost = weaponData[offset++];
+            weapon.EnergyCost = data[offset++];
             Debug.Assert(weapon.EnergyCost <= 150);
             //offset e
-            weapon.RequiredWill = weaponData[offset++];
+            weapon.RequiredWill = data[offset++];
             Debug.Assert(weapon.RequiredWill <= 150);
             //offset f
-            weapon.RequiredSkill = weaponData[offset++];
+            weapon.RequiredSkill = data[offset++];
             Debug.Assert(weapon.RequiredSkill < 0x40);
             return weapon;
         }        
@@ -187,45 +197,35 @@ namespace Entities
         public override string ToString()
         {
             StringBuilder stringBuilder
-                = new StringBuilder();
-            stringBuilder.AppendFormat("Id: {0:X}", Id);
-            stringBuilder.AppendFormat(", 名: {0}", Name);
-            if (IsMelee)
-                stringBuilder.Append("🤛");
-            if (IsMap)
-                stringBuilder.Append("🗺️");
-            if (IsPortable)
-                stringBuilder.Append("Ⓟ");
-            if (IsRepair)
-                stringBuilder.Append("🔧");
-            if (IsResupply)
-                stringBuilder.Append("🔄");
-            if (IsDeflectable)
-                stringBuilder.Append("⚔");
-            if (IsBeam)
-                stringBuilder.Append("Ⓑ");
-            stringBuilder.AppendFormat(", 地址: {0:X}", BaseOffset);
-            //stringBuilder.AppendFormat(", 类型1: {0:X2}{1:X2}", TypeCode1, TypeCode2);
-            //stringBuilder.AppendFormat(", 类型2未知字节: {0:X}", TypeCode2LowerHalf);
-            stringBuilder.AppendFormat(", 台词: {0:X}:{1:X}", BaseOffset + 2, FormatPilotQuote(PilotQuote));
-            stringBuilder.AppendFormat(", 动画: {0:X}:{1:X}", BaseOffset + 3, BattleAnimation);
-            stringBuilder.AppendFormat(", 伤害: {0:X}:{1}", BaseOffset + 5, Damage);
-            stringBuilder.AppendFormat(", 程: {0}~{1}", MinRange, MaxRange);
-            stringBuilder.AppendFormat(", 命中补正: {0}", AccuracyBonus);
-            stringBuilder.AppendFormat(", 改造价格类型: {0}", UpgradeCostType);
-            stringBuilder.AppendFormat(", 地形适应: {0:X}:{1}", BaseOffset + 0xb, TerrainAdaptionSet?.ToString());
-            stringBuilder.AppendFormat(", 暴击补正: {0}", CriticalHitRateBonus);
-
-            if (MaxAmmo > 0)
-                stringBuilder.AppendFormat("\t弹数: {0:X}:{1}", BaseOffset + 0xc, MaxAmmo);
-            if (EnergyCost > 0)
-                stringBuilder.AppendFormat("\t耗能: {0:X}:{1}", BaseOffset + 0xd, EnergyCost);
-            if (RequiredWill > 0)
-                stringBuilder.AppendFormat("\t必要气力: {0:X}:{1}", BaseOffset + 0xe, RequiredWill);
-            if (RequiredSkill > 0)
-                stringBuilder.AppendFormat("\t必要技能: {0:X}:{1}:{0:X}", BaseOffset + 0xf, RequiredSkill);
+                = new StringBuilder();            
             
+            stringBuilder.AppendFormat("Id: {0:X}", Id);
+            stringBuilder.AppendFormat("\t地址:{0,6:X}", BaseOffset);
+            stringBuilder.AppendFormat("\t伤害:{0,6:X}:{1,5}", BaseOffset + 5, Damage);
+            stringBuilder.AppendFormat("\t程:{0,2}~{1,2}", MinRange, MaxRange);
+            stringBuilder.AppendFormat("\t命中补正:{0,3}", AccuracyBonus);
+            stringBuilder.AppendFormat("\t暴击补正:{0,3}", CriticalHitRateBonus);
+            stringBuilder.AppendFormat("\t地形适应:{0,6:X}:{1}", BaseOffset + 0xb, TerrainAdaptionSet?.ToString());
+            if (MaxAmmo > 0)
+                stringBuilder.AppendFormat("\t弹数:{0,3:X}:{1}", BaseOffset + 0xc, MaxAmmo);
+            if (EnergyCost > 0)
+                stringBuilder.AppendFormat("\t耗能:{0,3:X}:{1}", BaseOffset + 0xd, EnergyCost);
+            if (MaxAmmo == 0 && EnergyCost == 0)
+            {
+                stringBuilder.AppendFormat("\t      ");
+            }
+            stringBuilder.AppendFormat("\t名:{0:X}:{1}", NameOffset, GetNameWithAttributes());
 
+            if (RequiredWill > 0)
+                stringBuilder.AppendFormat("\t必要气力: {0,6:X}:{1,2}", BaseOffset + 0xe, RequiredWill);
+            if (RequiredSkill > 0)
+                stringBuilder.AppendFormat("\t必要技能: {0,6:X}:{1,2}", BaseOffset + 0xf, RequiredSkill);
+            
+            stringBuilder.AppendFormat("\t 台词: {0:X}:{1:X}", BaseOffset + 2, FormatPilotQuote(PilotQuote));
+            stringBuilder.AppendFormat("\t 动画: {0:X}:{1:X}", BaseOffset + 3, BattleAnimation);
+            stringBuilder.AppendFormat("\t 改造价格类型: {0}", UpgradeCostType);
+            //stringBuilder.AppendFormat("\t类型1: {0:X2}{1:X2}", TypeCode1, TypeCode2);
+            //stringBuilder.AppendFormat("\t类型2未知字节: {0:X}", TypeCode2LowerHalf);
             if (HasAssignedOwner)
                 stringBuilder.AppendFormat("\t首装备: {0:X}", FirstOwner?.Name);
             return stringBuilder.ToString();
@@ -282,20 +282,31 @@ namespace Entities
             StringBuilder stringBuilder
                 = new StringBuilder();
             stringBuilder.Append(Name);
-            if(IsMelee)
+            if (IsMelee)
                 stringBuilder.Append("🤛");
-            if (IsDeflectable)
-                stringBuilder.Append("⚔");
-            if (IsBeam)
-                stringBuilder.Append("Ⓑ");
-            if (IsPortable)
-                stringBuilder.Append("Ⓟ");
             if (IsMap)
-                stringBuilder.Append("🗺️");
+            {
+                if (!string.IsNullOrWhiteSpace(Name) && !Name.Contains("🗺"))
+                {
+                    stringBuilder.Append("🗺");
+                }
+            }
+            if (IsPortable)
+            {
+                if (!string.IsNullOrWhiteSpace(Name) && !Name.Contains("Ⓟ"))
+                    stringBuilder.Append("Ⓟ");
+            }
             if (IsRepair)
                 stringBuilder.Append("🔧");
             if (IsResupply)
                 stringBuilder.Append("🔄");
+            if (IsDeflectable)
+                stringBuilder.Append("⚔");
+            if (IsBeam)
+            {
+                if (!string.IsNullOrWhiteSpace(Name) && !Name.Contains("Ⓑ"))
+                    stringBuilder.Append("Ⓑ");
+            }
             return stringBuilder.ToString();
         }
     }

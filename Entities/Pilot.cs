@@ -22,6 +22,7 @@ namespace Entities
         public byte FranchiseId { get; set; }
 
         public byte PlayStationFranchise2 { get; private set; }
+        public byte TransferTypeGenderPersonality{ get; private set; }
         public byte TransferFranchiseId { get; private set; }
         public bool IsFemale { get; private set; }
         public bool IsFixedSeat { get; private set; }
@@ -81,29 +82,39 @@ namespace Entities
         public bool IsPlayStation { get; set; }
         [Ignore]
         public int FirstAppearance { get; set; }
+        public string? DisplayName { get; private set; }
+        [Ignore]
+        public int DisplayNameOffset { get; private set; }
+        public string? CallSign { get; private set; }
+        [Ignore]
+        public int CallSignOffset { get; private set; }
+
         public string GetLabel()
         {
             return RstHelper.GetLabelName(this.EnglishName);
         }
-        public static List<Pilot>? Parse(byte[] pilotData, int headerOffset, int dataOffset, List<PilotMetaData> pilotMetaData, bool isPlayStation)
+        public static List<Pilot>? Parse(ReadOnlySpan<byte> romData, IndexTable indexTable,List<PilotMetaData> pilotMetaData, bool isPlayStation, List<EntityName> pilotNames, List<EntityName> pilotCallSigns)
         {
-            var magicMark = BitConverter.ToUInt16(pilotData, headerOffset);
-            Debug.Assert(magicMark == 0);
-
-            var pilotList = new List<Pilot>();
-
-            for (int pilotIndex = 1; pilotIndex < 256; pilotIndex++)
+            var result = new List<Pilot>();
+            var indexedLocations = indexTable.Read(romData);
+            int pilotId = 0;
+            foreach (var location in indexedLocations)
             {
-                var unitOffset = BitConverter.ToUInt16(pilotData, headerOffset + pilotIndex * 2);
-                if (unitOffset == 0) continue;//no data at this address
-                Pilot pilot = ParsePilot(pilotData, dataOffset + unitOffset, pilotIndex, isPlayStation);
-                FixPilotData(pilot, pilotMetaData);
-                pilotList.Add(pilot);
+                if (location != 0)
+                {
+                    var pilot = ParsePilot(romData.Slice(location,256), location, pilotId, isPlayStation);
+                    if (pilot != null)
+                    {
+                        FixPilotData(pilot, pilotMetaData, pilotNames, pilotCallSigns);
+                        result.Add(pilot);
+                    }
+                }
+                pilotId++;
             }
-            return pilotList.Where(u => (u.Affiliation != null && !u.Affiliation.Equals(""))).OrderBy(p => p.Id).ToList();
+            return result;
         }
 
-        private static void FixPilotData(Pilot pilot, List<PilotMetaData> pilotMetaData)
+        private static void FixPilotData(Pilot pilot, List<PilotMetaData> pilotMetaData, List<EntityName> pilotNames, List<EntityName> pilotCallSigns)
         {
             var fixPilot = pilotMetaData.Where(p => p.Id == pilot.Id).FirstOrDefault();
             if (fixPilot == null)
@@ -125,19 +136,31 @@ namespace Entities
             {
                 pilot.FranchiseName = "マジンガーZ";
             }
+            var pilotName=pilotNames.Where(p=>p.Id == pilot.Id).FirstOrDefault(); 
+            if (pilotName != null &&!string.IsNullOrWhiteSpace(pilotName.Name))
+            {
+                pilot.DisplayName = pilotName.Name;
+                pilot.DisplayNameOffset = pilotName.Offset;
+            }
+            var pilotCallsign= pilotCallSigns.Where(p => p.Id == pilot.Id).FirstOrDefault();
+            if (pilotCallsign != null && !string.IsNullOrWhiteSpace(pilotCallsign.Name))
+            {
+                pilot.CallSign = pilotCallsign.Name; 
+                pilot.CallSignOffset = pilotCallsign.Offset;
+            }
         }
 
-        private static Pilot ParsePilot(byte[] playStationUnitData, int baseOffset, int pilotIndex, bool isPlayStation)
+        private static Pilot ParsePilot(ReadOnlySpan<byte> pilotData, int baseOffset, int pilotIndex, bool isPlayStation)
         {
             Pilot pilot = new Pilot();
             pilot.IsPlayStation = isPlayStation;
             pilot.Id = pilotIndex;
             pilot.BaseOffset = baseOffset;
-            int offset = baseOffset;
+            int offset = 0;
             //offset 0
-            pilot.FaceId = playStationUnitData[offset++];
+            pilot.FaceId = pilotData[offset++];
             //offset 1
-            var inGameFranchise = playStationUnitData[offset++];
+            var inGameFranchise = pilotData[offset++];
             pilot.FranchiseId = (byte)(inGameFranchise & 0xFE);
             if ((inGameFranchise & 0x01) != 0)
             {
@@ -146,40 +169,41 @@ namespace Entities
             if (isPlayStation)
             {
                 //offset 2
-                pilot.PlayStationFranchise2 = playStationUnitData[offset++];
+                pilot.PlayStationFranchise2 = pilotData[offset++];
             }
             //offset 2/3
-            byte transferFranchiseAndPersonality = playStationUnitData[offset++];
-            pilot.TransferFranchiseId = (byte)(transferFranchiseAndPersonality & 0xF);
-            pilot.IsFemale = (transferFranchiseAndPersonality & 0x80) != 0;
-            pilot.IsFixedSeat = (transferFranchiseAndPersonality & 0x40) != 0;
-            pilot.Personality = (byte)((transferFranchiseAndPersonality & 0x30) / 16);
+            byte transferTypeGenderPersonality = pilotData[offset++];
+            pilot.TransferTypeGenderPersonality = transferTypeGenderPersonality;
+            pilot.TransferFranchiseId = (byte)(transferTypeGenderPersonality & 0xF);
+            pilot.IsFemale = (transferTypeGenderPersonality & 0x80) != 0;
+            pilot.IsFixedSeat = (transferTypeGenderPersonality & 0x40) != 0;
+            pilot.Personality = (byte)((transferTypeGenderPersonality & 0x30) / 16);
             //offset 3/4
-            pilot.Experience = playStationUnitData[offset++];
+            pilot.Experience = pilotData[offset++];
             //offset 4/5
-            byte growthType = playStationUnitData[offset++];
+            byte growthType = pilotData[offset++];
             pilot.AccuracyGrowthType = (byte)((growthType & 0xF0) / 16);
             pilot.SkillGrowthType = (byte)(growthType & 0xF);
             Debug.Assert(pilot.SkillGrowthType < 4);
             Debug.Assert(pilot.AccuracyGrowthType < 4);
             //offset 5/6
-            growthType = playStationUnitData[offset++];
+            growthType = pilotData[offset++];
             pilot.NearGrowthType = (byte)((growthType & 0xF0) / 16);
             pilot.FarGrowthType = (byte)(growthType & 0xF);
             //Debug.Assert(pilot.NearGrowthType <= 4);
             //Debug.Assert(pilot.FarGrowthType <= 4);
             //offset 6/7
-            pilot.SPGrowthType = (byte)((playStationUnitData[offset++]) / 16);
+            pilot.SPGrowthType = (byte)((pilotData[offset++]) / 16);
             Debug.Assert(pilot.SPGrowthType < 4);
             //offset 7/8
-            growthType = playStationUnitData[offset++];
+            growthType = pilotData[offset++];
             pilot.EvasionGrowthType = (byte)((growthType & 0xF0) / 16);
             Debug.Assert(pilot.EvasionGrowthType < 5);
             pilot.IntuitionGrowthType = (byte)(growthType & 0xF);
             Debug.Assert(pilot.IntuitionGrowthType < 3);
             //offset 8/9
-            var terrainAdaptionLow = playStationUnitData[offset++];
-            var terrainAdaptionHigh = playStationUnitData[offset++];
+            var terrainAdaptionLow = pilotData[offset++];
+            var terrainAdaptionHigh = pilotData[offset++];
             pilot.TerrainAdaptionSet = TerrainAdaptionSet.FromPilotOrUnitAdaptions(
                 terrainAdaptionLow, terrainAdaptionHigh);
             Debug.Assert(pilot.TerrainAdaptionAir < 5);
@@ -188,37 +212,36 @@ namespace Entities
             Debug.Assert(pilot.TerrainAdaptionSpace < 5);
             Debug.Assert(pilot.TerrainAdaptionLand < 5);
             //offset a/b
-            pilot.NearAttack = playStationUnitData[offset++];
+            pilot.NearAttack = pilotData[offset++];
             //offset b/c
-            pilot.FarAttack = playStationUnitData[offset++];
+            pilot.FarAttack = pilotData[offset++];
             //offset c/d
-            pilot.Accuracy = playStationUnitData[offset++];
+            pilot.Accuracy = pilotData[offset++];
             //offset d/e
-            pilot.Skill = playStationUnitData[offset++];
+            pilot.Skill = pilotData[offset++];
             //offset e/f
-            pilot.Evasion = playStationUnitData[offset++];
+            pilot.Evasion = pilotData[offset++];
             //offset f/10
-            pilot.Intuition = playStationUnitData[offset++];
+            pilot.Intuition = pilotData[offset++];
             //offset 10/11
-            pilot.StartSP = playStationUnitData[offset++];
+            pilot.StartSP = pilotData[offset++];
             //offset 11/12
             pilot.SpiritCommandsOrSkills = new List<PilotSpiritCommandsOrSkill>();
-            ushort testData = BitConverter.ToUInt16(playStationUnitData, offset);
+            ushort testData = BitConverter.ToUInt16(pilotData.Slice(offset, 2));
             while (testData != 0)
-            {
-                var baseAddress = offset;
-                var pilotSpiritCommandsOrSkill = playStationUnitData[offset++];
-                var acquireAtLevel = playStationUnitData[offset++];
+            {                
+                var pilotSpiritCommandsOrSkill = pilotData[offset++];
+                var acquireAtLevel = pilotData[offset++];
                 Debug.Assert(pilotSpiritCommandsOrSkill < 0x40);
                 //Debug.Assert(acquireAtLevel < 64);
                 PilotSpiritCommandsOrSkill spiritCommandsOrSkill = new PilotSpiritCommandsOrSkill
                 {
-                    BaseAddress = baseAddress,
+                    BaseOffset = offset + baseOffset,
                     AcquireAtLevel = acquireAtLevel,
                     SpiritCommandsOrSkill = pilotSpiritCommandsOrSkill
                 };
                 pilot.SpiritCommandsOrSkills.Add(spiritCommandsOrSkill);
-                testData = BitConverter.ToUInt16(playStationUnitData, offset);
+                testData = BitConverter.ToUInt16(pilotData.Slice(offset, 2));
             }
             return pilot;
         }
@@ -228,14 +251,15 @@ namespace Entities
             StringBuilder stringBuilder
                 = new StringBuilder();
             stringBuilder.AppendFormat(" Id: {0:X}", Id);
-            stringBuilder.AppendFormat("\t名: {0}\t\t{1}\t{2}", Name, EnglishName, ChineseName);
+            stringBuilder.AppendFormat("\t名: {0:X}:\t{1}\t{2}\t{3}\t{4}", DisplayNameOffset,DisplayName,Name, EnglishName, ChineseName);
+            stringBuilder.AppendFormat("\t呼号: {0:X}:\t{1}", CallSignOffset, CallSign);
             stringBuilder.AppendFormat("\t 属: {0:X}", Affiliation);
             stringBuilder.AppendFormat("\t 作: {0:X}", FranchiseName);
-            stringBuilder.AppendFormat("\t 颜: {0:X}:{1}", BaseOffset, FaceId);
+            stringBuilder.AppendFormat("\t 颜: {0:X}:{1:X}", BaseOffset, FaceId);
             stringBuilder.AppendFormat("\t 游戏作: {0:X}:{1:X}({2})", BaseOffset + 0x01, FranchiseId, Franchise.FormatFranchise(FranchiseId));
             if (PlayStationFranchise2 != 0)
                 stringBuilder.AppendFormat("\t PS游戏作: {0:X}:{1}({2})", BaseOffset + 0x02, PlayStationFranchise2,Franchise.FormatPlayStationFranchise2(PlayStationFranchise2));
-            stringBuilder.AppendFormat("\t 换乘: {0:X}:{1:X}", BaseOffset + (this.IsPlayStation ? 3 : 2), TransferFranchiseId+(IsFemale?0x80:0)+(IsFixedSeat?0x40:0)+ Personality*16);
+            stringBuilder.AppendFormat("\t 换乘: {0:X}:{1:X}({2})", BaseOffset + (this.IsPlayStation ? 3 : 2), TransferTypeGenderPersonality,this.TransferFranchiseId);
             if (IsFemale)
                 stringBuilder.Append("\t 女");
             if (IsFixedSeat)
@@ -318,7 +342,7 @@ namespace Entities
             foreach (var pilotSpiritCommandsOrSkill in validSpiritCommandsOrSkills)
             {
                 string pilotSpiritCommandsOrSkillString = string.Format("{0} {1}", PilotSpiritCommandsOrSkill.Format(
-                    pilotSpiritCommandsOrSkill.BaseAddress,
+                    pilotSpiritCommandsOrSkill.BaseOffset,
                     pilotSpiritCommandsOrSkill.SpiritCommandsOrSkill, previousSpiritCommandsOrSkill, withAddress), pilotSpiritCommandsOrSkill.AcquireAtLevel);
                 if (sb.Length != 0)
                 {
@@ -588,7 +612,8 @@ namespace Entities
             stringBuilder.AppendLine(string.Format(".. _srw4_pilot_{0}:", pilotLabel));
             stringBuilder.AppendLine();
 
-            var fixedSeatUnits=snesRom.Units?.Where(u => u.FixedSeatPilotId == pilotId).ToList();
+            var fixedSeatUnits=snesRom.Units?.Where(u => u.FixedSeatPilotId == pilotId
+            && !string.IsNullOrWhiteSpace(u.Name)).ToList();
             RstWritePilotMetaData(stringBuilder, pilotId, pilotTScoreParametersSet, pilotMetaData, snesPilot, playstationPilot, fixedSeatUnits);
 
             RstWritePilotSpiritCommandsAndSkills(stringBuilder, pilotMetaData, snesPilot, playstationPilot, delegate (PilotSpiritCommandsOrSkill pilotSpiritCommandsOrSkill) { return pilotSpiritCommandsOrSkill.SpiritCommandsOrSkill < 0x20; });
