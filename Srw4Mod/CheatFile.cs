@@ -1,4 +1,5 @@
-﻿using HtmlAgilityPack;
+﻿using Entities;
+using HtmlAgilityPack;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -23,7 +24,7 @@ namespace Srw4Mod
             CheatFile result=new CheatFile();
             using (WebClient webClient = new WebClient())
             {
-                var text = webClient.DownloadString("https://jiangsheng.net/build/html/games/srw4/mechanics/cheat.html");
+                var text = webClient.DownloadString(url);
                 HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
                 doc.LoadHtml(text);
                 var snesCheatSection= doc.DocumentNode.SelectSingleNode("//section[h2[a[text()='第四次金手指']]]");
@@ -282,13 +283,16 @@ namespace Srw4Mod
             
             foreach (var cheatGroup in CheatGroups)
             {
-                if(string.Compare(cheatGroup.Name, "第四次S金手指", StringComparison.Ordinal) == 0)
-                    WriteCheatGroupDuckStation(sbDuckStation, cheatGroup);
+                if (string.Compare(cheatGroup.Name, "第四次S金手指", StringComparison.Ordinal) == 0)
+                {
+                    //Debug.WriteLine(cheatGroup.ToString());
+                    WriteCheatGroup(sbDuckStation, cheatGroup,true);
+                }
                 if (string.Compare(cheatGroup.Name, "第四次金手指", StringComparison.Ordinal) == 0)
                 {
-                    Debug.WriteLine(cheatGroup.ToString());
-                    WriteCheatGroupSnes(sbBsnes, cheatGroup);
-                    WriteCheatGroupSnes(sbSnes9x, cheatGroup);
+                    
+                    WriteCheatGroup(sbBsnes, cheatGroup,false);
+                    WriteCheatGroup(sbSnes9x, cheatGroup, false);
                 }
             }
             if (sbDuckStation.Length > 0)
@@ -304,61 +308,44 @@ namespace Srw4Mod
                 File.WriteAllText(bsnesCheatFileName, sbBsnes.ToString());
             }
         }
-        private static void WriteCheatGroupDuckStation(StringBuilder sbDuckStation, CheatGroup cheatGroup)
-        {
+        private static void WriteCheatGroup(StringBuilder stringBuilder, CheatGroup cheatGroup, bool isPlayStation)
+        {           
             if (cheatGroup.Entries.Count > 0)
             {
                 if (!string.IsNullOrWhiteSpace(cheatGroup.Name))
                 {
-                    sbDuckStation.AppendLine(string.Format("[{0}]",cheatGroup.GetPath().Replace("第四次S金手指\\", string.Empty)));
-                    sbDuckStation.AppendLine("Type = Gameshark");
-                    sbDuckStation.AppendLine("Activation = EndFrame");
+                    if (isPlayStation)
+                    {
+                        stringBuilder.AppendLine(string.Format("[{0}]", cheatGroup.GetPath().Replace("第四次S金手指\\", string.Empty)));
+                        stringBuilder.AppendLine("Type = Gameshark");
+                        stringBuilder.AppendLine("Activation = EndFrame");
+                    }
+                    else {
+                        stringBuilder.AppendLine("cheat");
+                        stringBuilder.AppendLine(string.Format("  name: {0}", cheatGroup.GetPath().Replace("第四次金手指\\", string.Empty)));
+                    }
                 }
-                foreach (var comment in cheatGroup.Comments)
+                if (isPlayStation)
                 {
-                    sbDuckStation.AppendLine(comment);
-                }
+                    foreach (var comment in cheatGroup.Comments)
+                    {
+                        stringBuilder.AppendLine(comment);
+                    }
 
-                foreach (var cheatEntry in cheatGroup.Entries)
-                {
-                    foreach (var code in cheatEntry.Codes)
+                    foreach (var cheatEntry in cheatGroup.Entries)
                     {
-                        sbDuckStation.AppendLine(code);
-                    }
-                    foreach (var comments in cheatEntry.Comments)
-                    {
-                        sbDuckStation.AppendLine(comments.Replace("[",string.Empty).Replace("]",string.Empty));
-                    }
-                }
-            }
-            else
-            {
-                //no code entry, skip name and comments
-                var AnySubGroupHasName = cheatGroup.SubGroups.Select(g=>g.Name).Any(name=>!string.IsNullOrWhiteSpace(name));
-                if (!AnySubGroupHasName)
-                {
-                    if (!string.IsNullOrWhiteSpace(cheatGroup.Name))
-                    {
-                        sbDuckStation.AppendLine(string.Format("[{0}]", cheatGroup.GetPath().Replace("第四次S金手指\\", string.Empty)));
-                        sbDuckStation.AppendLine("Type = Gameshark");
-                        sbDuckStation.AppendLine("Activation = EndFrame");
+                        foreach (var code in cheatEntry.Codes)
+                        {
+                            stringBuilder.AppendLine(code);
+                        }
+                        foreach (var comments in cheatEntry.Comments)
+                        {
+                            stringBuilder.AppendLine(comments.Replace("[", string.Empty).Replace("]", string.Empty));
+                        }
                     }
                 }
-                foreach (var cheatSubGroup in cheatGroup.SubGroups)
-                {
-                    WriteCheatGroupDuckStation(sbDuckStation, cheatSubGroup);
-                }
-            }
-        }
-        void WriteCheatGroupSnes(StringBuilder sbSnes, CheatGroup cheatGroup)
-        {
-            if (cheatGroup.Entries.Count > 0)
-            {
-                if (!string.IsNullOrWhiteSpace(cheatGroup.Name))
-                {
-                    sbSnes.AppendLine("cheat");
-                    sbSnes.AppendLine(string.Format("  name: {0}",cheatGroup.GetPath().Replace("第四次金手指\\", string.Empty)));
-                    StringBuilder codes=new StringBuilder();
+                else {
+                    StringBuilder codes = new StringBuilder();
                     StringBuilder comments = new StringBuilder();
                     foreach (var cheatEntry in cheatGroup.Entries)
                     {
@@ -366,7 +353,7 @@ namespace Srw4Mod
                         {
                             if (codes.Length > 0)
                                 codes.Append('+');
-                            codes.Append(code);                            
+                            codes.Append(code);
                         }
                         foreach (var comment in cheatEntry.Comments)
                         {
@@ -374,30 +361,50 @@ namespace Srw4Mod
                                 comments.Append('+');
                             comments.Append(comment.Replace("+", "⊕"));
                         }
-                        sbSnes.Append("  code: ");
-                        sbSnes.AppendLine(codes.ToString());
+                        stringBuilder.Append("  code: ");
+                        stringBuilder.AppendLine(codes.ToString());
                         if (comments.Length > 0)
                         {
-                            sbSnes.Append("  comments: ");
-                            sbSnes.AppendLine(comments.ToString());
+                            stringBuilder.Append("  comments: ");
+                            stringBuilder.AppendLine(comments.ToString());
                         }
                     }
-                    sbSnes.AppendLine();
+                    stringBuilder.AppendLine();
                 }
             }
             else
             {
-                //no code entry, skip name and comments
-                var AnySubGroupHasName = cheatGroup.SubGroups.Select(g => g.Name).Any(name => !string.IsNullOrWhiteSpace(name));
-                if (!AnySubGroupHasName)
+                var anySubGroupHasName = cheatGroup.SubGroups.Select(g => g.Name).Any(name => !string.IsNullOrWhiteSpace(name));
+                if (isPlayStation)
                 {
+                    if(!anySubGroupHasName)
+                    {
+                        //this is a card
+                        if (!string.IsNullOrWhiteSpace(cheatGroup.Name))
+                        {
+                            stringBuilder.AppendLine(string.Format("[{0}]", cheatGroup.GetPath().Replace("第四次S金手指\\", string.Empty)));
+                            stringBuilder.AppendLine("Type = Gameshark");
+                            stringBuilder.AppendLine("Activation = EndFrame");
+                        }
+
+                    }
+                    foreach (var cheatSubGroup in cheatGroup.SubGroups)
+                    {
+                        WriteCheatGroup(stringBuilder, cheatSubGroup, isPlayStation);
+                    }
+                }
+                else if (!anySubGroupHasName)
+                {
+                    //this is a card
+                    //as snes9x and bsnes has no concept of multi-line cheats 
+                    //the whole card needs to be placed in the same cheat code
                     StringBuilder codes = new StringBuilder();
                     StringBuilder comments = new StringBuilder();
                     if (!string.IsNullOrWhiteSpace(cheatGroup.Name))
                     {
-                        sbSnes.AppendLine("cheat");
-                        sbSnes.Append("  name: ");
-                        sbSnes.AppendLine(cheatGroup.GetPath().Replace("第四次金手指\\", string.Empty));
+                        stringBuilder.AppendLine("cheat");
+                        stringBuilder.Append("  name: ");
+                        stringBuilder.AppendLine(cheatGroup.GetPath().Replace("第四次金手指\\", string.Empty));
                     }
                     if (cheatGroup.Comments.Count > 0)
                     {
@@ -410,7 +417,7 @@ namespace Srw4Mod
                     }
                     //unnamed groups within the same card
                     if (cheatGroup.SubGroups.Count > 0)
-                    {                       
+                    {
                         foreach (var cheatSubGroup in cheatGroup.SubGroups)
                         {
                             foreach (var cheatEntry in cheatSubGroup.Entries)
@@ -432,21 +439,44 @@ namespace Srw4Mod
                     }
                     if (codes.Length > 0)
                     {
-                        sbSnes.Append("  code: ");
-                        sbSnes.AppendLine(codes.ToString());
+                        stringBuilder.Append("  code: ");
+                        stringBuilder.AppendLine(codes.ToString());
                     }
                     if (comments.Length > 0)
                     {
-                        sbSnes.Append("  comments: ");
-                        sbSnes.AppendLine(comments.ToString());
+                        stringBuilder.Append("  comments: ");
+                        stringBuilder.AppendLine(comments.ToString());
                     }
-                    sbSnes.AppendLine();
+                    stringBuilder.AppendLine();
                 }
-                foreach (var cheatSubGroup in cheatGroup.SubGroups)
+                else
                 {
-                    WriteCheatGroupSnes(sbSnes, cheatSubGroup);
+                    foreach (var cheatSubGroup in cheatGroup.SubGroups)
+                    {
+                        WriteCheatGroup(stringBuilder, cheatSubGroup, isPlayStation);
+                    }
                 }
             }
+        }
+        public void ConvertPlayStationCheatsToSnes(string str,Rom snesRom, Rom playstationRom)
+        {
+            foreach (var cheatGroup in CheatGroups)
+            {
+                if (string.Compare(cheatGroup.Name, "第四次S金手指", StringComparison.Ordinal) == 0)
+                {
+                    foreach (var subGroup in cheatGroup.SubGroups)
+                    {
+                        if (string.Compare(subGroup.Name, "机师修改", StringComparison.Ordinal) == 0)
+                        {
+                            foreach (var subGroup1 in subGroup.SubGroups)
+                            {
+
+                            }
+                        }
+                    }
+                }
+            }
+
         }
     }
 }

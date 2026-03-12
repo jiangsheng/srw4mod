@@ -116,26 +116,27 @@ namespace Srw4Mod
             var snes9xCheatFileName = "snes9x.cht";
             var bsnesCheatFileName = "bsnes.cht";
             var duckstationCheatFileName = "duckstation.cht";
-            if (!File.Exists(snes9xCheatFileName)|| File.Exists(bsnesCheatFileName) || !File.Exists(duckstationCheatFileName))
-            {
+
             
-                WriterCheats(snes9xCheatFileName, bsnesCheatFileName,duckstationCheatFileName);
-            }
+            WriterCheats(snes9xCheatFileName, bsnesCheatFileName,duckstationCheatFileName, snesRom, playstationRom);
+
             
-            //DumpData(snesRom.Pilots);
-            //DumpData(snesRom.Units);
-            //DumpData(snesRom.Weapons);
-            //DumpData(playstationRom.Pilots);
-            //DumpData(playstationRom.Units);
-            //DumpData(playstationRom.Weapons);
+            DumpData(snesRom.Pilots);
+            DumpData(snesRom.Units);
+            DumpData(snesRom.Weapons);
+            DumpData(playstationRom.Pilots);
+            DumpData(playstationRom.Units);
+            DumpData(playstationRom.Weapons);
            
         }
 
-        private static void WriterCheats(string snes9xCheatFileName, string bsnesCheatFileName, string duckstationCheatFileName)
+        private static void WriterCheats(string snes9xCheatFileName, string bsnesCheatFileName, string duckstationCheatFileName, Rom snesRom, Rom playstationRom)
         {
             CheatFile cheatFile = CheatFile.CreateFromUrl("https://jiangsheng.net/build/html/games/srw4/mechanics/cheat");
+            //CheatFile cheatFile = CheatFile.CreateFromUrl("file:///C:/github/jiangsheng/jiangsheng.github.io/build/html/games/srw4/mechanics/cheat.html");
+
             cheatFile.WriteToFile(snes9xCheatFileName, bsnesCheatFileName, duckstationCheatFileName);
-            
+            cheatFile.ConvertPlayStationCheatsToSnes("ps2snes.rst", snesRom, playstationRom);
         }
 
 
