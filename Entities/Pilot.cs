@@ -96,9 +96,9 @@ namespace Entities
         public static List<Pilot>? Parse(ReadOnlySpan<byte> romData, IndexTable indexTable,List<PilotMetaData> pilotMetaData, bool isPlayStation, List<EntityName> pilotNames, List<EntityName> pilotCallSigns)
         {
             var result = new List<Pilot>();
-            var indexedLocations = indexTable.Read(romData);
+            indexTable.Read(romData);
             int pilotId = 0;
-            foreach (var location in indexedLocations)
+            foreach (var location in indexTable.IndexedLocations)
             {
                 if (location != 0)
                 {
@@ -150,12 +150,12 @@ namespace Entities
             }
         }
 
-        private static Pilot ParsePilot(ReadOnlySpan<byte> pilotData, int baseOffset, int pilotIndex, bool isPlayStation)
+        private static Pilot ParsePilot(ReadOnlySpan<byte> pilotData, int basePilotOffset, int pilotIndex, bool isPlayStation)
         {
             Pilot pilot = new Pilot();
             pilot.IsPlayStation = isPlayStation;
             pilot.Id = pilotIndex;
-            pilot.BaseOffset = baseOffset;
+            pilot.BaseOffset = basePilotOffset;
             int offset = 0;
             //offset 0
             pilot.FaceId = pilotData[offset++];
@@ -229,14 +229,15 @@ namespace Entities
             pilot.SpiritCommandsOrSkills = new List<PilotSpiritCommandsOrSkill>();
             ushort testData = BitConverter.ToUInt16(pilotData.Slice(offset, 2));
             while (testData != 0)
-            {                
+            {
+                var baseSpiritCommandsOffset = offset;
                 var pilotSpiritCommandsOrSkill = pilotData[offset++];
                 var acquireAtLevel = pilotData[offset++];
                 Debug.Assert(pilotSpiritCommandsOrSkill < 0x40);
                 //Debug.Assert(acquireAtLevel < 64);
                 PilotSpiritCommandsOrSkill spiritCommandsOrSkill = new PilotSpiritCommandsOrSkill
                 {
-                    BaseOffset = offset + baseOffset,
+                    BaseOffset = baseSpiritCommandsOffset + basePilotOffset,
                     AcquireAtLevel = acquireAtLevel,
                     SpiritCommandsOrSkill = pilotSpiritCommandsOrSkill
                 };

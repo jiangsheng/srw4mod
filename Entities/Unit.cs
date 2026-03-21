@@ -117,9 +117,9 @@ namespace Entities
         public static List<Unit>? Parse(ReadOnlySpan<byte> romData, IndexTable indexTable, List<UnitMetaData> unitMetaData, List<Weapon> weapons, List<EntityName> unitNames)
         {
             var result = new List<Unit>();
-            var indexedLocations = indexTable.Read(romData);
+            indexTable.Read(romData);
             int unitId = 0;
-            foreach (var location in indexedLocations)
+            foreach (var location in indexTable.IndexedLocations)
             {
                 if (location != 0)
                 {
@@ -428,7 +428,7 @@ namespace Entities
             stringBuilder.AppendFormat("\t未知数据{0}", Convert.ToHexString(this.UnknownBytes));
             stringBuilder.AppendFormat("\t经验: {0:X}:{1}", BaseOffset + 0xf, Experience);
             stringBuilder.AppendFormat("\t获得资金: {0:X}:{1}", BaseOffset + 0x10, Gold);
-            stringBuilder.AppendFormat("\t修理费 RepairCost: {0:X}:{1}", BaseOffset + 0x12, RepairCost);
+            stringBuilder.AppendFormat("\t修理费 : {0:X}:{1}", BaseOffset + 0x12, RepairCost);
             stringBuilder.AppendFormat("\t地形参照:{0:X}", PreferredPilotId);
             stringBuilder.AppendFormat("\r\n移动力: {0:X}:{1}", BaseOffset + 0x14, MoveRange);
             stringBuilder.AppendFormat("\t移动类型: {0:X}:{1:X}", BaseOffset + 0x15, MoveType);

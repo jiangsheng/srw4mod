@@ -113,30 +113,32 @@ namespace Srw4Mod
 
             Franchise.WritePilotRst(pilotsFolder, pilots, snesRom, playstationRom, comments);
 
-            var snes9xCheatFileName = "snes9x.cht";
-            var bsnesCheatFileName = "bsnes.cht";
-            var duckstationCheatFileName = "duckstation.cht";
+            var snes9xCheatFileName = "Dai 4 Ji Super Robot Taisen (V1.1) (J)_snes9x.cht";
+            var bsnesCheatFileName = "Dai 4 Ji Super Robot Taisen (V1.1) (J)_bsnes.cht";
+            var duckstationCheatFileName = "SLPS-00196_duckstation.cht";
 
-            
+
+            /*DumpData(snesRom.Pilots);
+            DumpData(snesRom.Units);
+            DumpData(snesRom.Weapons);*/
+            DumpData(playstationRom.Pilots);
+            DumpData(playstationRom.Units);
+            //DumpData(playstationRom.Weapons);
             WriterCheats(snes9xCheatFileName, bsnesCheatFileName,duckstationCheatFileName, snesRom, playstationRom);
 
             
-            DumpData(snesRom.Pilots);
-            DumpData(snesRom.Units);
-            DumpData(snesRom.Weapons);
-            DumpData(playstationRom.Pilots);
-            DumpData(playstationRom.Units);
-            DumpData(playstationRom.Weapons);
            
         }
 
         private static void WriterCheats(string snes9xCheatFileName, string bsnesCheatFileName, string duckstationCheatFileName, Rom snesRom, Rom playstationRom)
         {
-            CheatFile cheatFile = CheatFile.CreateFromUrl("https://jiangsheng.net/build/html/games/srw4/mechanics/cheat");
-            //CheatFile cheatFile = CheatFile.CreateFromUrl("file:///C:/github/jiangsheng/jiangsheng.github.io/build/html/games/srw4/mechanics/cheat.html");
+            //CheatFile cheatFile = CheatFile.CreateFromUrl("https://jiangsheng.net/build/html/games/srw4/mechanics/cheat");
+            CheatFile cheatFile = CheatFile.CreateFromUrl("file:///C:/github/jiangsheng/jiangsheng.github.io/build/html/games/srw4/mechanics/cheat.html");
+            //Debug.WriteLine(cheatFile.ToString());
 
             cheatFile.WriteToFile(snes9xCheatFileName, bsnesCheatFileName, duckstationCheatFileName);
-            cheatFile.ConvertPlayStationCheatsToSnes("ps2snes.rst", snesRom, playstationRom);
+            cheatFile.SourceCode = File.ReadAllText("C:\\github\\jiangsheng\\jiangsheng.github.io\\docs\\games\\srw4\\mechanics\\cheat.rst");
+            cheatFile.ConvertPlayStationCheatsToSnes("cheat.rst", snesRom, playstationRom);
         }
 
 

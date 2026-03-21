@@ -21,6 +21,7 @@ namespace Entities
                 
                 PilotNames = new IndexTable(0x51514, 0x51794, 0x51FC8 - 0x51794, 0x49800);
                 PilotCallSigns = new IndexTable(0x5210c, 0x5238c, 0x527F5 - 0x5238c, 0x49800);
+                Chips = 0xE721C; 
             }
             else {
                 Weapons = new IndexTable(0xbc950, 0xbce70, 0xBF6F0 - 0xbce70,0xb0000);
@@ -30,6 +31,7 @@ namespace Entities
                 Pilots = new IndexTable(0xb7012, 0xB7312, 0xb8f8b - 0xB7312, 0xb0000);
                 PilotNames = new IndexTable(0x126b34,0x126db4,0x1275e7- 0x126db4, 0x120000);
                 PilotCallSigns = new IndexTable(0x12772b,0x1279ab,0x127e14- 0x1279ab, 0x120000);
+                Chips = 0xdf85c;
             }
         }
 
@@ -43,5 +45,6 @@ namespace Entities
 
         public IndexTable PilotNames { get; set; }
         public IndexTable PilotCallSigns{ get; set; }
+        public int Chips { get; set; }
     }
 }

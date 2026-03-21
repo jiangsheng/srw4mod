@@ -17,9 +17,9 @@ namespace Entities
         internal static List<EntityName> Parse(ReadOnlySpan<byte> romData, IndexTable indexTable)
         {
             var result = new List<EntityName>();
-            var indexedLocations = indexTable.Read(romData);
+            indexTable.Read(romData);
             int nameId = 0;
-            foreach (var location in indexedLocations)
+            foreach (var location in indexTable.IndexedLocations)
             {
                 if (location != 0)
                 {

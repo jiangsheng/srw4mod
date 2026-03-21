@@ -24,6 +24,7 @@ namespace Entities
         bool IsPlayStation { get; set; }
 
         public static SRW4Encoding srw4Encoding = new SRW4Encoding();
+        public byte[] RomData { get; set; }
         public RomOffsets RomOffsets { get; set; }
         public Rom(bool isPlayStation)
         {
@@ -35,6 +36,7 @@ namespace Entities
            bool isPlayStation)
         {
             var result = new Rom(isPlayStation);
+            result.RomData=romData.ToArray();
             result.WeaponNames = EntityName.Parse(romData, result.RomOffsets.WeaponNames);
             result.UnitNames= EntityName.Parse(romData, result.RomOffsets.UnitNames);
             result.PilotNames = EntityName.Parse(romData, result.RomOffsets.PilotNames);

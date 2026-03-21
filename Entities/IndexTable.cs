@@ -20,6 +20,7 @@ namespace Entities
         public int DataOffset { get; set; }
         public int DataLength{ get; set; }
         public int IndexBase { get; set; }
+        public List<int> IndexedLocations { get; set; }
         /// <summary>
         /// return a list of indexed locations stored in the data table
         /// </summary>
@@ -29,7 +30,7 @@ namespace Entities
         /// <param name="dataLength">length of indexed data</param>
         /// <param name="indexBase">base offset of index values</param>
         /// <returns></returns>
-        public List<int> Read(ReadOnlySpan<byte> data)
+        public void Read(ReadOnlySpan<byte> data)
         {
             List<int> indexedLocations=new List<int> ();
             //do not read header past data
@@ -50,7 +51,7 @@ namespace Entities
                         indexedLocations.Add(indexedOffset);
                 }
             }
-            return indexedLocations;
+            IndexedLocations= indexedLocations;
         }
     }
 }

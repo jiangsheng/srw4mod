@@ -1,10 +1,14 @@
-﻿using Entities;
+﻿using Castle.Components.DictionaryAdapter.Xml;
+using Entities;
 using HtmlAgilityPack;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Net;
+using System.Reflection.Emit;
+using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -16,17 +20,26 @@ namespace Srw4Mod
 {
     internal class CheatFile
     {
-        public List<CheatGroup> CheatGroups { get; set; } = new List<CheatGroup>();  
+        public List<CheatGroup> CheatGroups { get; set; } = new List<CheatGroup>();
+        public string? SourceCode { get; set; }
         CheatFile() { }
+        public override string ToString()
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            foreach (var item in CheatGroups)
+            {
+                stringBuilder.AppendLine(item.ToString());  
+            }
+            return stringBuilder.ToString();
+        }
 
         public static CheatFile CreateFromUrl(string url)
         {
             CheatFile result=new CheatFile();
             using (WebClient webClient = new WebClient())
             {
-                var text = webClient.DownloadString(url);
                 HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
-                doc.LoadHtml(text);
+                doc.LoadHtml(webClient.DownloadString(url));
                 var snesCheatSection= doc.DocumentNode.SelectSingleNode("//section[h2[a[text()='第四次金手指']]]");
                 CheatGroup cheatGroup = new CheatGroup("第四次金手指", null);
                 ParseSection(3, snesCheatSection, cheatGroup);
@@ -127,6 +140,8 @@ namespace Srw4Mod
                     }
                     else
                     {
+                        Debug.Assert(!line.Contains((char)0xfef));
+
                         //last line is comments or null, and this line is code
                         if (!foundFirstCode)
                         {
@@ -150,6 +165,7 @@ namespace Srw4Mod
                 }
                 else
                 {
+                    Debug.Assert(!line.Contains((char)0xfef));
                     //this line is comment
                     if (!foundFirstCode)
                     {
@@ -182,6 +198,8 @@ namespace Srw4Mod
                 parent.SubGroups.Remove(singleEntry);
             }
         }
+
+        private const string arrowChar = "→";
         static Regex regexSnesCode1 = new Regex(@"^([0-9A-Fa-f]{6}=[0-9A-Fa-f]{2}\?[0-9A-Fa-f]{2})(.*)", RegexOptions.Compiled |
     RegexOptions.IgnoreCase);
         static Regex regexSnesCode2 = new Regex(@"^([A-Fa-f0-9]{6}=[A-Fa-f0-9]{2})(.*)", RegexOptions.Compiled |RegexOptions.IgnoreCase);
@@ -458,25 +476,544 @@ namespace Srw4Mod
                 }
             }
         }
-        public void ConvertPlayStationCheatsToSnes(string str,Rom snesRom, Rom playstationRom)
+        public void ConvertPlayStationCheatsToSnes(string fileName,Rom snesRom, Rom playstationRom)
         {
-            foreach (var cheatGroup in CheatGroups)
-            {
-                if (string.Compare(cheatGroup.Name, "第四次S金手指", StringComparison.Ordinal) == 0)
-                {
-                    foreach (var subGroup in cheatGroup.SubGroups)
-                    {
-                        if (string.Compare(subGroup.Name, "机师修改", StringComparison.Ordinal) == 0)
-                        {
-                            foreach (var subGroup1 in subGroup.SubGroups)
-                            {
+            var lines = this.SourceCode?.Split("\r\n")?.ToList();
+            if (lines == null || lines.Count == 0) return;
 
-                            }
-                        }
+            var playStationCheatGroups= CheatGroups.Where(g=>g.Name== "第四次S金手指").First();
+            var pilotChanges = playStationCheatGroups.SubGroups.Where(g => g.Name == "机师修改").First();
+            lines= ConvertPlayStationCheatGroupToSnes(lines,pilotChanges, "srw4_cheat_pilots_snes_begin", "srw4_cheat_pilots_snes_end", snesRom.RomOffsets.Pilots.DataOffset, playstationRom.RomOffsets.Pilots.DataOffset, EntityType.Pilot, snesRom, playstationRom);
+            var unitChanges = playStationCheatGroups.SubGroups.Where(g => g.Name == "机体修改").First();
+            lines = ConvertPlayStationCheatGroupToSnes(lines, unitChanges, "srw4_cheat_units_snes_begin", "srw4_cheat_units_snes_", snesRom.RomOffsets.Units.DataOffset
+                , playstationRom.RomOffsets.Units.DataOffset, EntityType.Unit, snesRom, playstationRom);
+            var weaponChanges = playStationCheatGroups.SubGroups.Where(g => g.Name == "武器修改").First();
+
+            lines = ConvertPlayStationCheatGroupToSnes(lines, weaponChanges, "srw4_cheat_weapons_snes_begin", "srw4_cheat_weapons_snes_end", snesRom.RomOffsets.Weapons.DataOffset, playstationRom.RomOffsets.Weapons.DataOffset, EntityType.Weapon,null,null);
+            var chipChanges = playStationCheatGroups.SubGroups.Where(g => g.Name == "芯片修改").First();
+
+            lines = ConvertPlayStationCheatGroupToSnes(lines, chipChanges, "srw4_cheat_chips_snes_begin", "srw4_cheat_chips_snes_end", snesRom.RomOffsets.Chips, playstationRom.RomOffsets.Chips, EntityType.Chip, null, null);
+
+            var specialtyChanges = playStationCheatGroups.SubGroups.Where(g => g.Name == "机体特殊技能修改").First();
+
+            lines = ConvertPlayStationCheatGroupToSnes(lines, specialtyChanges, "srw4_cheat_unit_specialty_snes_begin", "srw4_cheat_unit_specialty_snes_end", snesRom.RomOffsets.Units.DataOffset
+                , playstationRom.RomOffsets.Units.DataOffset, EntityType.Unit, snesRom, playstationRom);
+            File.WriteAllLines(fileName, lines);
+
+        }
+
+
+
+        private List<string> ConvertPlayStationCheatGroupToSnes(List<string> lines, CheatGroup cheatGroup, string markerBegin
+            , string markerEnd, int dataOffsetSnes, int dataOffsetPlayStation, EntityType entityType, Rom? snesRom , Rom? playstationRom)
+        {
+            List<string> result = new List<string>();
+            bool isReplacing = false;
+            List<string> replaced = ConvertSubGroupsToSnes(cheatGroup, dataOffsetSnes, dataOffsetPlayStation, entityType, snesRom, playstationRom);
+            foreach (var line in lines)
+            {
+                if (isReplacing)
+                {
+                    if (line.Contains(markerEnd))
+                    {
+                        isReplacing = false;
+                        result.Add(line);
+                    }
+                    else
+                        continue;
+                }
+                else
+                {
+                    if (line.Contains(markerBegin))
+                    {
+                        isReplacing = true;
+                        result.Add(line);
+                        result.Add(string.Empty);
+                        result.AddRange(replaced);
+                    }
+                    else
+                    {
+                        result.Add(line);
                     }
                 }
             }
+            Debug.Assert(result.Contains(".. _srw4_cheat_unit_specialty_ps_end:"));
+            return result;
+        }
 
+        private List<string> ConvertSubGroupsToSnes(CheatGroup parentGroup, int dataOffsetSnes,
+            int dataOffsetPlayStation, EntityType entityType, Rom? snesRom,
+            Rom? playstationRom, bool isTransform = false
+            )
+        {
+
+            List<string> result = new List<string>();
+
+            switch (parentGroup.Name)
+            {
+                default:
+                    result.Add(".. grid::");
+                    result.Add(string.Empty);
+                    foreach (var group in parentGroup.SubGroups)
+                    {
+                        result.Add(string.Format("    .. grid-item-card:: {0}", group.Name));
+                        result.Add("      :columns: auto\r\n");
+                        INamedItem groupEntity = null;
+                        if (group.Comments != null)
+                        {
+                            foreach (var comment in group.Comments)
+                            {
+                                result.Add(string.Format("      | {0}", comment));
+
+                            }
+                        }
+                        switch (entityType)
+                        {
+                            case EntityType.Pilot:
+                                {
+                                    //additional skills added in ps remake, so addresses are different
+                                    var pilotName = group.Name;
+                                    var pilot = playstationRom?.Pilots.Where(
+                                        p => p.Name == pilotName ||
+                                        p.CallSign == pilotName.Replace("ー", "－") ||
+                                        p.DisplayName == pilotName.Replace("·", "＝").Replace("ー", "－")).FirstOrDefault();
+                                    Debug.Assert(pilot != null);
+                                    groupEntity = pilot;
+                                    dataOffsetPlayStation = playstationRom.RomOffsets.Pilots.IndexedLocations[pilot.Id];
+                                    dataOffsetSnes = snesRom.RomOffsets.Pilots.IndexedLocations[pilot.Id];
+                                }
+                                break;
+                            case EntityType.Unit:
+                                {
+                                    var unitName = group.Name;
+                                    Unit unit = GetUnitByName(playstationRom, unitName);
+
+                                    Debug.Assert(unit != null);
+                                    groupEntity = unit;
+                                    dataOffsetPlayStation = playstationRom.RomOffsets.Units.IndexedLocations[unit.Id];
+                                    dataOffsetSnes = snesRom.RomOffsets.Units.IndexedLocations[unit.Id];
+                                }
+                                break;
+                            case EntityType.Weapon:
+                                {
+                                    var weaponName = group.Name;
+                                    switch (weaponName)
+                                    {
+                                        case "ドリルテンペスト":
+                                            //真·ゲッター2 has weapon changed in the playstation remake
+                                            //ミラ－ジュドリル was removed
+                                            //and ドリルテンペスト took its place
+                                            //apply cheat code to ミラ－ジュドリル instead
+                                            dataOffsetSnes += 0x10;
+                                            break;
+                                    }
+
+                                }
+                                break;
+                        }
+
+                        foreach (var subGroup in group.SubGroups)
+                        {
+                            Debug.Assert(string.IsNullOrEmpty(subGroup.Name));
+                            ConvertEntries(result, subGroup.Entries, dataOffsetSnes, dataOffsetPlayStation, entityType, groupEntity, playstationRom, isTransform, parentGroup.Name);
+                        }
+                        ConvertEntries(result, group.Entries, dataOffsetSnes, dataOffsetPlayStation, entityType, groupEntity, playstationRom, isTransform
+                            , parentGroup.Name);
+                        result.Add(string.Empty);
+                    }
+                    break;
+                case "机体特殊技能修改":
+                    foreach (var subgroup in parentGroup.SubGroups)
+                    {
+                        string header = subgroup.Name;
+                        string seperatorLine = new string('"', header.Length * 2);
+                        result.Add(seperatorLine);
+                        result.Add(header);
+                        result.Add(seperatorLine);
+                        result.Add(string.Empty);
+                        result.AddRange(ConvertSubGroupsToSnes(subgroup, dataOffsetSnes,  dataOffsetPlayStation, entityType, snesRom, playstationRom
+                            , header.Contains("变形")));
+                    }
+                    break;
+            }
+            return result;
+        }
+
+        private static Unit GetUnitByName(Rom? playstationRom, string unitName)
+        {
+            Unit unit;
+            if (unitName.EndsWith("变形"))
+            {
+                var realUnitName = unitName.Substring(0, unitName.Length - 2);
+                unit = playstationRom.Units.Where(
+                u => u.Name == realUnitName ||
+                u.DisplayName == realUnitName.Replace("ー", "－").Replace("·", "＝") ||
+                u.ChineseName == realUnitName ||
+                u.EnglishName == realUnitName).FirstOrDefault();
+            }
+            else if (unitName.StartsWith("机体0x"))
+            {
+                var unitIdString = unitName.Substring(4, 2);
+                var unitId = int.Parse(unitIdString, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+                unit = playstationRom.Units.Where(u => u.Id == unitId).FirstOrDefault();
+            }
+            else
+                unit = playstationRom.Units.Where(
+                u => u.Name == unitName ||
+                u.DisplayName == unitName.Replace("ー", "－").Replace("·", "＝") ||
+                u.ChineseName == unitName ||
+                u.EnglishName == unitName).FirstOrDefault();
+            return unit;
+        }
+
+        private static void ConvertEntries(List<string> result, LinkedList<CheatEntry> entries, int dataOffsetSnes, int dataOffsetPlayStation, EntityType entityType, INamedItem? groupEntity, Rom? playstationRom, bool isTransform = false, string parentGroup= null)
+        {
+            foreach (var entry in entries)
+            {
+                foreach (var code in entry.Codes)
+                {
+                    var codeParts = code.Split(" ");
+                    var opCode = codeParts[0].Substring(0, 2);
+                    var addressInHex = codeParts[0].Substring(2, 6);
+                    var valueInHex = codeParts[1];
+                    var value = int.Parse(valueInHex, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+                    var address = int.Parse(addressInHex, NumberStyles.HexNumber, CultureInfo.InvariantCulture) - 0x20000;
+                    var addressOfset = address - dataOffsetPlayStation;
+                    var firstComment = entry.Comments.Count > 0 ? entry.Comments[0] : string.Empty;
+                    var secondComment = entry.Comments.Count > 1 ? entry.Comments[1] : string.Empty;
+                    var thirdComment = entry.Comments.Count > 2 ? entry.Comments[2] : string.Empty;
+                    if (secondComment.StartsWith(arrowChar) ||firstComment.EndsWith(arrowChar))
+                    {
+                        //playstation pilots has extra byte after face 
+                        firstComment = firstComment + secondComment;
+                        secondComment = string.Empty;
+                    }
+                    if (thirdComment.StartsWith(arrowChar) || secondComment.EndsWith(arrowChar))
+                    {
+                        firstComment = firstComment + secondComment+ thirdComment;
+                        thirdComment= secondComment= string.Empty;
+                    }
+                    switch (entityType)
+                    { 
+                        case EntityType.Pilot:
+                            {
+                                if (addressOfset > 0)
+                                {
+                                    addressOfset -= 1;
+                                    var pilot = groupEntity as Pilot;
+                                    ValidatePilotCode(opCode,firstComment, secondComment, address, value, pilot);
+                                }
+
+                            }
+                            break;
+                        case EntityType.Unit:
+                            {
+                                var unit = groupEntity as Unit;
+                                if(playstationRom!=null)
+                                    ValidateUnitCode(opCode,firstComment, secondComment, address, value, unit, playstationRom, isTransform, parentGroup);
+                            }
+                            break;
+
+                    }
+                    var snesAddresOfset = dataOffsetSnes + addressOfset;
+                    var snesAddress = snesAddresOfset + 0xC00000;
+                    switch (opCode)
+                    {
+                        case "30"://single byte write
+                            Debug.Assert(value < 0x100);
+                            result.Add(string.Format("      | {0:X6}={1:X2}",
+                                 snesAddress, value));
+                            break;
+                        case "80"://double byte write
+                            result.Add(string.Format("      | {0:X6}={1:X2}",
+                                snesAddress, value % 256));
+                            result.Add(string.Format("      | {0:X6}={1:X2}",
+                                snesAddress + 1, value / 256));
+                            break;
+                        default:
+                            Debug.Assert(false);
+                            break;
+                    }
+                }
+                foreach (var comment in entry.Comments)
+                {
+                    result.Add(string.Format("      | {0}",
+                                comment));
+                }
+            }
+        }
+
+        private static void ValidateUnitCode(string opCode,string firstComment, string secondComment, int address, int value, Unit? unit, Rom? playstationRom,bool isTransform, string parentGroup)
+        {
+            if (parentGroup == "二段变身")
+            {
+                Debug.Assert(
+                    address==unit.BaseOffset+0x9 //skill 2
+                    || address == unit.BaseOffset + 0x7 //seperatable
+                    || address == unit.BaseOffset + 0x15//move type
+                    || address == unit.BaseOffset + 0x1E//weapon count
+
+                    );
+                return;
+            }
+            switch (secondComment)
+            {
+                case "武器再编号":
+                case "弹药槽再编号":
+                case "武器/残弹槽数量":
+                    Debug.Assert(isTransform);
+                    var unitFor = GetUnitByName(playstationRom,firstComment);
+                    bool? found = false;
+                    switch (secondComment)
+                    {
+                        case "武器再编号":
+                            found = unitFor?.Weapons?.Any(w => w.BaseOffset + 2 == address);
+                            break;
+                        case "弹药槽再编号":
+                            found = unitFor?.Weapons?.Any(w => w.BaseOffset + 1 == address);
+                            break;
+                        case "武器/残弹槽数量":
+                            found = unitFor.BaseOffset + 0x1E == address;
+                            break;
+
+                    }
+                    Debug.Assert(found.HasValue && found.Value);
+                    return;
+            }
+            switch (firstComment)
+            {
+                case "乘换機動戦士系":
+                    Debug.Assert(opCode == "80");
+                    Debug.Assert(address == unit.BaseOffset + 4);
+                    Debug.Assert(value == 0);                    
+                    break;
+                case "乘换ダンバイン系":
+                    Debug.Assert(opCode == "80");
+                    Debug.Assert(address == unit.BaseOffset + 4);
+                    Debug.Assert(value == 0x200);
+                    break;
+                case "移动类型空陆":
+                    Debug.Assert(address == unit.BaseOffset +0x15);
+                    Debug.Assert(value == 1);
+                    break;
+                case "移动类型/力":
+                    Debug.Assert(address == unit.BaseOffset + 0x14);
+                    Debug.Assert(opCode == "80");
+                    break;
+                case "地形适应全A":
+                    Debug.Assert(address == unit.BaseOffset + 0x16);
+                    Debug.Assert(value == 0x4444);
+                    break;
+                case "地形适应空A宇A":
+                    Debug.Assert(address == unit.BaseOffset + 0x16);
+                    Debug.Assert(value == 0x4040);
+                    break;
+                case "武器/残弹槽数量":
+                    Debug.Assert(address == unit.BaseOffset + 0x1E);
+                    Debug.Assert(opCode == "80"); break;
+                case "武器数量":
+                    Debug.Assert(address == unit.BaseOffset + 0x1E);
+                    Debug.Assert(opCode == "30");
+                    break;
+                case "メガカノン砲":
+                    Debug.Assert(unit?.Id == 0x106);
+                    break;
+                case "ギガブラスター":
+                    Debug.Assert(unit?.Id == 0x10d);
+                    break;
+                case "可被合体":
+                    Debug.Assert(address == unit.BaseOffset + 0x7);
+                    Debug.Assert(opCode == "30");
+                    break;
+
+                default:
+                    if (secondComment.StartsWith("弹药槽→")|| secondComment.StartsWith("序号→"))
+                    {
+                        firstComment = string.Format("{0} {1} {2}", firstComment, arrowChar, secondComment);
+                    }
+
+                    if (firstComment.Contains(arrowChar))
+                    {
+                        var firstLineParts = firstComment.Split(arrowChar);
+                        var weaponName = firstLineParts[0].Trim();
+                        var unitName = weaponName;
+                        var attributeName = weaponName;
+
+                        if (firstLineParts.Length > 1)
+                        {
+                            switch (attributeName)
+                            {
+
+                                case "图像":
+                                    Debug.Assert(address == unit.BaseOffset + 0x2);
+                                    break;
+                                case "图标":
+                                    Debug.Assert(address == unit.BaseOffset);
+                                    break;
+                                case "装甲":
+                                    Debug.Assert(address == unit.BaseOffset+0x18);
+                                    Debug.Assert(opCode == "30");
+                                    break;
+                                case "运动性":
+                                    Debug.Assert(address == unit.BaseOffset + 0x19);
+                                    Debug.Assert(opCode == "30");
+                                    break;
+                                case "限界":
+                                    Debug.Assert(address == unit.BaseOffset + 0x1a);
+                                    Debug.Assert(opCode == "30");
+                                    break;
+                                    Debug.Assert(address == unit.BaseOffset + 0x1a);
+                                    Debug.Assert(opCode == "30");
+                                    break;
+                                default:
+                                    {
+
+                                        weaponName = Regex.Replace(weaponName, @"\([^)]*\)", string.Empty).Replace(((char)0xfe0f).ToString(),string.Empty);
+                                        var weapon = unit.Weapons?.Where(w => string.Compare(w.Weapon.Name.Replace("🗺", string.Empty).Replace("－", "ー")
+                                            , weaponName.Replace("－", "ー"),
+                                            StringComparison.InvariantCulture) == 0).FirstOrDefault();
+                                        if (weapon != null)
+                                        {
+                                            if(secondComment.StartsWith("序号→"))
+                                                Debug.Assert(weapon.BaseOffset+2 == address);
+                                            else if (secondComment.StartsWith("弹药槽→"))
+                                                Debug.Assert(weapon.BaseOffset + 1 == address);
+                                            else
+                                                Debug.Assert(weapon.BaseOffset == address);
+                                        }
+                                        else
+                                        {
+                                            Unit unitLookup = GetUnitByName(playstationRom, unitName);
+                                            if (unitLookup != null)
+                                            {
+                                                Debug.Assert(address == unitLookup.BaseOffset + 7);
+                                                Debug.Assert(value == 0x08
+                                                    || value == 0x09
+                                                    || value == 0x18
+                                                    || value == 0x19
+                                                    || value == 0x1A);
+                                            }
+                                            else
+                                                Debug.Assert(false);
+
+                                        }
+                                    }
+                                    break;
+                            }
+                        }
+                        else
+                            Debug.Assert(false);
+
+                    }
+                    else
+                        Debug.Assert(false); 
+                    break;
+            }
+        }
+
+        private static void ValidatePilotCode(string opCode, string firstComment, string secondComment, int address, int value, Pilot? pilot)
+        {
+            var firstLineParts = firstComment.Split(arrowChar);
+
+            if (firstLineParts.Length > 1)
+            {
+                var spriritCommandOrSkillName = firstLineParts[0];
+                var newSpriritCommandOrSkillName = firstLineParts[1];
+                if (string.IsNullOrEmpty(newSpriritCommandOrSkillName))
+                {
+                    newSpriritCommandOrSkillName = secondComment;
+                }
+                if (spriritCommandOrSkillName.Contains("/"))
+                {
+                    var spriritCommandOrSkillNameParts = spriritCommandOrSkillName.Split("/");
+                    if (spriritCommandOrSkillNameParts[1].Length > 1)
+                    {
+                        spriritCommandOrSkillName = spriritCommandOrSkillNameParts[1];
+                        if (newSpriritCommandOrSkillName.StartsWith("LV"))
+                            newSpriritCommandOrSkillName = spriritCommandOrSkillName;
+                    }
+                    else
+                    {
+                        spriritCommandOrSkillName = spriritCommandOrSkillNameParts[0].Substring(0, spriritCommandOrSkillNameParts[0].Length - 1) + spriritCommandOrSkillNameParts[1];
+                    }
+                }
+                else if (firstLineParts[1].Length == 1)
+                {
+                    if (firstLineParts[0].Contains(" LV"))
+                    {
+                        spriritCommandOrSkillName = firstLineParts[0].Substring(0, firstLineParts[0].IndexOf(" LV"));
+                        newSpriritCommandOrSkillName = spriritCommandOrSkillName;
+                    }
+                }
+                else if (newSpriritCommandOrSkillName.ToLower().StartsWith("lv"))
+                {
+                    newSpriritCommandOrSkillName = spriritCommandOrSkillName;
+                }
+                var spiritCommmand = pilot?.SpiritCommandsOrSkills?.Where(s =>
+                PilotSpiritCommandsOrSkill.Format(0, s.SpiritCommandsOrSkill, 0, false) == spriritCommandOrSkillName).FirstOrDefault();
+                if (spiritCommmand != null)
+                {
+                    Debug.Assert(address == spiritCommmand.BaseOffset);
+                    Debug.Assert(PilotSpiritCommandsOrSkill.Format(0, (byte)(value % 256), 0, false) == newSpriritCommandOrSkillName);
+                }
+                else
+                {
+                    if (firstLineParts[0] == "无")
+                    {
+                        Debug.Assert(pilot?.SpiritCommandsOrSkills?.Count == 2);
+                        Debug.Assert(pilot?.SpiritCommandsOrSkills?[0].SpiritCommandsOrSkill == 0);
+                        Debug.Assert(pilot?.SpiritCommandsOrSkills?[1].SpiritCommandsOrSkill == 0);
+                    }
+                    else
+                    {
+                        //spriritCommandOrSkillName=
+                        Debug.Assert(false);
+                    }
+
+                }
+            }
+            else
+            {
+                switch (firstComment)
+                {
+                    case "乘换可":
+                        Debug.Assert(address == pilot.BaseOffset + 3);
+                        Debug.Assert((value & 0x40) == 0);
+                        Debug.Assert(opCode == "30");
+                        break;
+                    case "乘换機動戦士系":
+                        Debug.Assert(address == pilot.BaseOffset + 3);
+                        Debug.Assert((value & 0x0f) == 0);
+                        Debug.Assert(opCode == "30");
+                        break;
+                    case "乘换ダンバイン系":
+                        Debug.Assert(address == pilot.BaseOffset + 3);
+                        Debug.Assert((value & 0x0f) == 2);
+                        Debug.Assert(opCode == "30");
+                        break;
+                    case "地形适应":
+                        Debug.Assert(address == pilot.BaseOffset + 9);
+                        break;
+                    case "能力":
+                        Debug.Assert(address >= pilot.BaseOffset + 0xB
+                            && address <= pilot.BaseOffset + 16);
+                        break;
+                    case "SP值":
+                        Debug.Assert(address == pilot.BaseOffset + 0x11);
+                        Debug.Assert(opCode == "30");
+                        break;
+                    default:
+                        if (firstComment.StartsWith("颜"))
+                        {
+                            Debug.Assert(address == pilot.BaseOffset);
+                            Debug.Assert(opCode == "30");
+                            break;
+                        }
+                        else
+                            Debug.Assert(false);
+                        break;
+                }
+            }
         }
     }
 }

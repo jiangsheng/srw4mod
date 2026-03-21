@@ -77,9 +77,9 @@ namespace Entities
         public static List<Weapon>? Parse(ReadOnlySpan<byte> romData, IndexTable indexTable, List<EntityName> weaponNames)
         {
             var weaponList = new List<Weapon>();
-            var indexedLocations = indexTable.Read(romData);
+            indexTable.Read(romData);
             int weaponId = 0;
-            foreach (var location in indexedLocations) {
+            foreach (var location in indexTable.IndexedLocations) {
                 if (location != 0)
                 {
                     var weapon = ParseWeapon(romData.Slice(location, 16), location, weaponId);
