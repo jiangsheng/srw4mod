@@ -205,14 +205,19 @@ namespace Entities
             stringBuilder.AppendFormat("\t程:{0,2}~{1,2}", MinRange, MaxRange);
             stringBuilder.AppendFormat("\t命中补正:{0,3}", AccuracyBonus);
             stringBuilder.AppendFormat("\t暴击补正:{0,3}", CriticalHitRateBonus);
-            stringBuilder.AppendFormat("\t地形适应:{0,6:X}:{1}", BaseOffset + 0xb, TerrainAdaptionSet?.ToString());
+            stringBuilder.AppendFormat("\t地形适应:{0,7:X}:{1,11}", BaseOffset + 0xb, TerrainAdaptionSet?.ToString());
+            stringBuilder.AppendFormat("\t 台词: {0,6:X}:{1,3:X}", BaseOffset + 2, FormatPilotQuote(PilotQuote));
+            stringBuilder.AppendFormat("\t 动画: {0,6:X}:{1,3:X}", BaseOffset + 3, BattleAnimation);
+            stringBuilder.AppendFormat("\t 改造价格类型: {0,2}", UpgradeCostType);
+
             if (MaxAmmo > 0)
-                stringBuilder.AppendFormat("\t弹数:{0,3:X}:{1}", BaseOffset + 0xc, MaxAmmo);
+                stringBuilder.AppendFormat("\t弹数:{0,6:X}:{1,3}", BaseOffset + 0xc, MaxAmmo);
             if (EnergyCost > 0)
-                stringBuilder.AppendFormat("\t耗能:{0,3:X}:{1}", BaseOffset + 0xd, EnergyCost);
+                stringBuilder.AppendFormat("\t耗能:{0,6:X}:{1,3}", BaseOffset + 0xd, EnergyCost);
+
             if (MaxAmmo == 0 && EnergyCost == 0)
             {
-                stringBuilder.AppendFormat("\t      ");
+                stringBuilder.AppendFormat("\t              ");
             }
             stringBuilder.AppendFormat("\t名:{0:X}:{1}", NameOffset, GetNameWithAttributes());
 
@@ -221,9 +226,6 @@ namespace Entities
             if (RequiredSkill > 0)
                 stringBuilder.AppendFormat("\t必要技能: {0,6:X}:{1,2}", BaseOffset + 0xf, RequiredSkill);
             
-            stringBuilder.AppendFormat("\t 台词: {0:X}:{1:X}", BaseOffset + 2, FormatPilotQuote(PilotQuote));
-            stringBuilder.AppendFormat("\t 动画: {0:X}:{1:X}", BaseOffset + 3, BattleAnimation);
-            stringBuilder.AppendFormat("\t 改造价格类型: {0}", UpgradeCostType);
             //stringBuilder.AppendFormat("\t类型1: {0:X2}{1:X2}", TypeCode1, TypeCode2);
             //stringBuilder.AppendFormat("\t类型2未知字节: {0:X}", TypeCode2LowerHalf);
             if (HasAssignedOwner)

@@ -431,7 +431,7 @@ namespace Entities
             stringBuilder.AppendFormat("\t修理费 : {0:X}:{1}", BaseOffset + 0x12, RepairCost);
             stringBuilder.AppendFormat("\t地形参照:{0:X}", PreferredPilotId);
             stringBuilder.AppendFormat("\r\n移动力: {0:X}:{1}", BaseOffset + 0x14, MoveRange);
-            stringBuilder.AppendFormat("\t移动类型: {0:X}:{1:X}", BaseOffset + 0x15, MoveType);
+            stringBuilder.AppendFormat("\t移动类型: {0:X}:{1:X}({2})", BaseOffset + 0x15, MoveType, TerrainAdaptionSet.FormatMovementType(MoveType));
             stringBuilder.AppendFormat("\t地形适应: {0:X}:{1}({2})", BaseOffset + 0x16,
                 Convert.ToHexString(this.TerrainAdaptionSet != null ? this.TerrainAdaptionSet.ToPilotOrUnitAdaptions() : new byte[] { }),
                 this.TerrainAdaptionSet?.ToString());
@@ -440,8 +440,8 @@ namespace Entities
             stringBuilder.AppendFormat("\t限: {0,6:X}:{1}", BaseOffset + 0x1a, Limit);
             stringBuilder.AppendFormat("\t能: {0,6:X}:{1}", BaseOffset + 0x1b, Energy);
             stringBuilder.AppendFormat("\tHP: {0,6:X}:{1}", BaseOffset + 0x1c, HP);
-            stringBuilder.AppendFormat("\t武器数: {0,6:X}:{1}", BaseOffset + 0x1e, WeaponCount);
-            stringBuilder.AppendFormat("\t弹药槽数: {0,6:X}:{1}", BaseOffset + 0x1f, AmmoWeaponCount);
+            stringBuilder.AppendFormat("\t武器数: {0,6:X}:{1:X}", BaseOffset + 0x1e, WeaponCount);
+            stringBuilder.AppendFormat("\t弹药槽数: {0,6:X}:{1:X}", BaseOffset + 0x1f, AmmoWeaponCount);
             stringBuilder.AppendFormat("\t首武器地址: {0,6:X}", BaseOffset + 0x20);
 
             if (WeaponCount > 0 && Weapons != null)

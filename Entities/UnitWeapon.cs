@@ -26,6 +26,7 @@ namespace Entities
 
             stringBuilder.AppendFormat("地址: {0,6:X}", BaseOffset);
             stringBuilder.AppendFormat("\t序号:{0,2:X}", Order);
+            stringBuilder.AppendFormat("\t动画:{0,3:X}", Weapon?.BattleAnimation);
             stringBuilder.AppendFormat("\t武器代码:{0,3:X}", WeaponIndex);
             stringBuilder.AppendFormat("\t弹药槽:{0,2:X}", AmmoSlot == 0 ? string.Empty : AmmoSlot.ToString());
             stringBuilder.AppendFormat("\t伤害:{0,5}", Weapon?.Damage);

@@ -28,19 +28,19 @@ namespace Srw4Mod
             StringBuilder stringBuilder = new StringBuilder();
             foreach (var item in CheatGroups)
             {
-                stringBuilder.AppendLine(item.ToString());  
+                stringBuilder.AppendLine(item.ToString());
             }
             return stringBuilder.ToString();
         }
 
         public static CheatFile CreateFromUrl(string url)
         {
-            CheatFile result=new CheatFile();
+            CheatFile result = new CheatFile();
             using (WebClient webClient = new WebClient())
             {
                 HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
                 doc.LoadHtml(webClient.DownloadString(url));
-                var snesCheatSection= doc.DocumentNode.SelectSingleNode("//section[h2[a[text()='第四次金手指']]]");
+                var snesCheatSection = doc.DocumentNode.SelectSingleNode("//section[h2[a[text()='第四次金手指']]]");
                 CheatGroup cheatGroup = new CheatGroup("第四次金手指", null);
                 ParseSection(3, snesCheatSection, cheatGroup);
                 result.CheatGroups.Add(cheatGroup);
@@ -63,8 +63,8 @@ namespace Srw4Mod
                 if (cheatGroupSubsectionHeader == null) continue;
                 var subsectionTitle = cheatGroupSubsectionHeader.InnerText;
 
-                var cheatGroupSubsection=new CheatGroup(subsectionTitle, parent);
-                ParseGrid(subsection,cheatGroupSubsection);
+                var cheatGroupSubsection = new CheatGroup(subsectionTitle, parent);
+                ParseGrid(subsection, cheatGroupSubsection);
                 ParseSection(headerLevel + 1, subsection, cheatGroupSubsection);
                 parent.SubGroups.Add(cheatGroupSubsection);
             }
@@ -134,7 +134,7 @@ namespace Srw4Mod
                         {
                             lastCheatEntry.Value.Codes.Add(cheatCodeParseResult.CheatCode);
 
-                            if(!string.IsNullOrWhiteSpace(cheatCodeParseResult.Comment))
+                            if (!string.IsNullOrWhiteSpace(cheatCodeParseResult.Comment))
                                 lastCheatEntry.Value.Comments.Add(cheatCodeParseResult.Comment);
                         }
                     }
@@ -202,7 +202,7 @@ namespace Srw4Mod
         private const string arrowChar = "→";
         static Regex regexSnesCode1 = new Regex(@"^([0-9A-Fa-f]{6}=[0-9A-Fa-f]{2}\?[0-9A-Fa-f]{2})(.*)", RegexOptions.Compiled |
     RegexOptions.IgnoreCase);
-        static Regex regexSnesCode2 = new Regex(@"^([A-Fa-f0-9]{6}=[A-Fa-f0-9]{2})(.*)", RegexOptions.Compiled |RegexOptions.IgnoreCase);
+        static Regex regexSnesCode2 = new Regex(@"^([A-Fa-f0-9]{6}=[A-Fa-f0-9]{2})(.*)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
 
         static Regex regexDuckStationCode1 = new Regex(@"^[0-9A-Fa-f]{8}\s*?:[0-9A-Fa-f]{4}|[0-9A-Fa-f]{8}(.*)$", RegexOptions.Compiled |
@@ -214,7 +214,7 @@ namespace Srw4Mod
 
         private static CheatCodeParseResult TryParseCheatCode(string line)
         {
-            Match regexSnesCode1Match= regexSnesCode1.Match(line);
+            Match regexSnesCode1Match = regexSnesCode1.Match(line);
             if (regexSnesCode1Match.Success)
             {
                 string code = string.Empty;
@@ -225,7 +225,7 @@ namespace Srw4Mod
                 string comment = string.Empty;
                 if (regexSnesCode1Match.Groups.Count > 2)
                 {
-                    comment= regexSnesCode1Match.Groups[2].Value;
+                    comment = regexSnesCode1Match.Groups[2].Value;
                 }
                 return new CheatCodeParseResult
                 {
@@ -287,7 +287,7 @@ namespace Srw4Mod
             };
         }
 
-    
+
         private static void AddCardToGroup(CheatGroup parentGroup, string cardTitleText, string code)
         {
             AddCardToGroup(parentGroup, cardTitleText, new List<string> { code });
@@ -298,18 +298,18 @@ namespace Srw4Mod
             StringBuilder sbSnes9x = new StringBuilder();
             StringBuilder sbBsnes = new StringBuilder();
             StringBuilder sbDuckStation = new StringBuilder();
-            
+
             foreach (var cheatGroup in CheatGroups)
             {
                 if (string.Compare(cheatGroup.Name, "第四次S金手指", StringComparison.Ordinal) == 0)
                 {
                     //Debug.WriteLine(cheatGroup.ToString());
-                    WriteCheatGroup(sbDuckStation, cheatGroup,true);
+                    WriteCheatGroup(sbDuckStation, cheatGroup, true);
                 }
                 if (string.Compare(cheatGroup.Name, "第四次金手指", StringComparison.Ordinal) == 0)
                 {
-                    
-                    WriteCheatGroup(sbBsnes, cheatGroup,false);
+
+                    WriteCheatGroup(sbBsnes, cheatGroup, false);
                     WriteCheatGroup(sbSnes9x, cheatGroup, false);
                 }
             }
@@ -327,7 +327,7 @@ namespace Srw4Mod
             }
         }
         private static void WriteCheatGroup(StringBuilder stringBuilder, CheatGroup cheatGroup, bool isPlayStation)
-        {           
+        {
             if (cheatGroup.Entries.Count > 0)
             {
                 if (!string.IsNullOrWhiteSpace(cheatGroup.Name))
@@ -395,7 +395,7 @@ namespace Srw4Mod
                 var anySubGroupHasName = cheatGroup.SubGroups.Select(g => g.Name).Any(name => !string.IsNullOrWhiteSpace(name));
                 if (isPlayStation)
                 {
-                    if(!anySubGroupHasName)
+                    if (!anySubGroupHasName)
                     {
                         //this is a card
                         if (!string.IsNullOrWhiteSpace(cheatGroup.Name))
@@ -476,20 +476,20 @@ namespace Srw4Mod
                 }
             }
         }
-        public void ConvertPlayStationCheatsToSnes(string fileName,Rom snesRom, Rom playstationRom)
+        public void ConvertPlayStationCheatsToSnes(string fileName, Rom snesRom, Rom playstationRom)
         {
             var lines = this.SourceCode?.Split("\r\n")?.ToList();
             if (lines == null || lines.Count == 0) return;
 
-            var playStationCheatGroups= CheatGroups.Where(g=>g.Name== "第四次S金手指").First();
+            var playStationCheatGroups = CheatGroups.Where(g => g.Name == "第四次S金手指").First();
             var pilotChanges = playStationCheatGroups.SubGroups.Where(g => g.Name == "机师修改").First();
-            lines= ConvertPlayStationCheatGroupToSnes(lines,pilotChanges, "srw4_cheat_pilots_snes_begin", "srw4_cheat_pilots_snes_end", snesRom.RomOffsets.Pilots.DataOffset, playstationRom.RomOffsets.Pilots.DataOffset, EntityType.Pilot, snesRom, playstationRom);
+            lines = ConvertPlayStationCheatGroupToSnes(lines, pilotChanges, "srw4_cheat_pilots_snes_begin", "srw4_cheat_pilots_snes_end", snesRom.RomOffsets.Pilots.DataOffset, playstationRom.RomOffsets.Pilots.DataOffset, EntityType.Pilot, snesRom, playstationRom);
             var unitChanges = playStationCheatGroups.SubGroups.Where(g => g.Name == "机体修改").First();
             lines = ConvertPlayStationCheatGroupToSnes(lines, unitChanges, "srw4_cheat_units_snes_begin", "srw4_cheat_units_snes_", snesRom.RomOffsets.Units.DataOffset
                 , playstationRom.RomOffsets.Units.DataOffset, EntityType.Unit, snesRom, playstationRom);
             var weaponChanges = playStationCheatGroups.SubGroups.Where(g => g.Name == "武器修改").First();
 
-            lines = ConvertPlayStationCheatGroupToSnes(lines, weaponChanges, "srw4_cheat_weapons_snes_begin", "srw4_cheat_weapons_snes_end", snesRom.RomOffsets.Weapons.DataOffset, playstationRom.RomOffsets.Weapons.DataOffset, EntityType.Weapon,null,null);
+            lines = ConvertPlayStationCheatGroupToSnes(lines, weaponChanges, "srw4_cheat_weapons_snes_begin", "srw4_cheat_weapons_snes_end", snesRom.RomOffsets.Weapons.DataOffset, playstationRom.RomOffsets.Weapons.DataOffset, EntityType.Weapon, null, null);
             var chipChanges = playStationCheatGroups.SubGroups.Where(g => g.Name == "芯片修改").First();
 
             lines = ConvertPlayStationCheatGroupToSnes(lines, chipChanges, "srw4_cheat_chips_snes_begin", "srw4_cheat_chips_snes_end", snesRom.RomOffsets.Chips, playstationRom.RomOffsets.Chips, EntityType.Chip, null, null);
@@ -505,7 +505,7 @@ namespace Srw4Mod
 
 
         private List<string> ConvertPlayStationCheatGroupToSnes(List<string> lines, CheatGroup cheatGroup, string markerBegin
-            , string markerEnd, int dataOffsetSnes, int dataOffsetPlayStation, EntityType entityType, Rom? snesRom , Rom? playstationRom)
+            , string markerEnd, int dataOffsetSnes, int dataOffsetPlayStation, EntityType entityType, Rom? snesRom, Rom? playstationRom)
         {
             List<string> result = new List<string>();
             bool isReplacing = false;
@@ -607,6 +607,7 @@ namespace Srw4Mod
                                             dataOffsetSnes += 0x10;
                                             break;
                                     }
+                                    groupEntity = GetWeaponByName(playstationRom, weaponName);
 
                                 }
                                 break;
@@ -615,10 +616,9 @@ namespace Srw4Mod
                         foreach (var subGroup in group.SubGroups)
                         {
                             Debug.Assert(string.IsNullOrEmpty(subGroup.Name));
-                            ConvertEntries(result, subGroup.Entries, dataOffsetSnes, dataOffsetPlayStation, entityType, groupEntity, playstationRom, isTransform, parentGroup.Name);
+                            ConvertEntries(result, subGroup.Entries, dataOffsetSnes, dataOffsetPlayStation, entityType, groupEntity, playstationRom, isTransform);
                         }
-                        ConvertEntries(result, group.Entries, dataOffsetSnes, dataOffsetPlayStation, entityType, groupEntity, playstationRom, isTransform
-                            , parentGroup.Name);
+                        ConvertEntries(result, group.Entries, dataOffsetSnes, dataOffsetPlayStation, entityType, groupEntity, playstationRom, isTransform);
                         result.Add(string.Empty);
                     }
                     break;
@@ -631,7 +631,7 @@ namespace Srw4Mod
                         result.Add(header);
                         result.Add(seperatorLine);
                         result.Add(string.Empty);
-                        result.AddRange(ConvertSubGroupsToSnes(subgroup, dataOffsetSnes,  dataOffsetPlayStation, entityType, snesRom, playstationRom
+                        result.AddRange(ConvertSubGroupsToSnes(subgroup, dataOffsetSnes, dataOffsetPlayStation, entityType, snesRom, playstationRom
                             , header.Contains("变形")));
                     }
                     break;
@@ -639,10 +639,16 @@ namespace Srw4Mod
             return result;
         }
 
+        private static Weapon? GetWeaponByName(Rom? playstationRom, string weaponName)
+        {
+            return playstationRom?.Weapons?.Where(
+                u => u.Name == weaponName).FirstOrDefault();
+        }
+
         private static Unit GetUnitByName(Rom? playstationRom, string unitName)
         {
             Unit unit;
-            if (unitName.EndsWith("变形"))
+            if (unitName.EndsWith("变形")|| unitName.EndsWith("分离"))
             {
                 var realUnitName = unitName.Substring(0, unitName.Length - 2);
                 unit = playstationRom.Units.Where(
@@ -666,7 +672,7 @@ namespace Srw4Mod
             return unit;
         }
 
-        private static void ConvertEntries(List<string> result, LinkedList<CheatEntry> entries, int dataOffsetSnes, int dataOffsetPlayStation, EntityType entityType, INamedItem? groupEntity, Rom? playstationRom, bool isTransform = false, string parentGroup= null)
+        private static void ConvertEntries(List<string> result, LinkedList<CheatEntry> entries, int dataOffsetSnes, int dataOffsetPlayStation, EntityType entityType, INamedItem? groupEntity, Rom? playstationRom, bool isTransform = false)
         {
             foreach (var entry in entries)
             {
@@ -682,7 +688,7 @@ namespace Srw4Mod
                     var firstComment = entry.Comments.Count > 0 ? entry.Comments[0] : string.Empty;
                     var secondComment = entry.Comments.Count > 1 ? entry.Comments[1] : string.Empty;
                     var thirdComment = entry.Comments.Count > 2 ? entry.Comments[2] : string.Empty;
-                    if (secondComment.StartsWith(arrowChar) ||firstComment.EndsWith(arrowChar))
+                    if (secondComment.StartsWith(arrowChar) || firstComment.EndsWith(arrowChar))
                     {
                         //playstation pilots has extra byte after face 
                         firstComment = firstComment + secondComment;
@@ -690,18 +696,18 @@ namespace Srw4Mod
                     }
                     if (thirdComment.StartsWith(arrowChar) || secondComment.EndsWith(arrowChar))
                     {
-                        firstComment = firstComment + secondComment+ thirdComment;
-                        thirdComment= secondComment= string.Empty;
+                        firstComment = firstComment + secondComment + thirdComment;
+                        thirdComment = secondComment = string.Empty;
                     }
                     switch (entityType)
-                    { 
+                    {
                         case EntityType.Pilot:
                             {
                                 if (addressOfset > 0)
                                 {
                                     addressOfset -= 1;
                                     var pilot = groupEntity as Pilot;
-                                    ValidatePilotCode(opCode,firstComment, secondComment, address, value, pilot);
+                                    ValidatePilotCode(opCode, firstComment, secondComment, address, value, pilot);
                                 }
 
                             }
@@ -709,8 +715,13 @@ namespace Srw4Mod
                         case EntityType.Unit:
                             {
                                 var unit = groupEntity as Unit;
-                                if(playstationRom!=null)
-                                    ValidateUnitCode(opCode,firstComment, secondComment, address, value, unit, playstationRom, isTransform, parentGroup);
+                                if (playstationRom != null)
+                                    ValidateUnitCode(opCode, firstComment, secondComment, thirdComment, address, value, unit, playstationRom, isTransform);
+                            }
+                            break;
+                        case EntityType.Weapon:
+                            {
+                                ValidateWeaponCode(opCode, firstComment, secondComment, address, value);
                             }
                             break;
 
@@ -743,174 +754,295 @@ namespace Srw4Mod
             }
         }
 
-        private static void ValidateUnitCode(string opCode,string firstComment, string secondComment, int address, int value, Unit? unit, Rom? playstationRom,bool isTransform, string parentGroup)
+        private static void ValidateWeaponCode(string opCode, string firstComment, string secondComment, int address, int value)
         {
-            if (parentGroup == "二段变身")
+            if (firstComment.Contains(arrowChar))
             {
-                Debug.Assert(
-                    address==unit.BaseOffset+0x9 //skill 2
-                    || address == unit.BaseOffset + 0x7 //seperatable
-                    || address == unit.BaseOffset + 0x15//move type
-                    || address == unit.BaseOffset + 0x1E//weapon count
+                var firstLineParts = firstComment.Split(arrowChar);
+                var attributeName = firstLineParts[0].Trim();
+                switch (attributeName)
+                {
+                    case "弹数":
+                        {
+                            Debug.Assert((address & 0xF) == 0xC);
+                            Debug.Assert(opCode == "30");
+                        }
+                        break;
+                    case "射程":
+                        {
+                            switch (opCode)
+                            {
+                                case "30":
+                                    Debug.Assert((address & 0xF) == 0xA);
+                                    break;
+                                case "80":
+                                    Debug.Assert((address & 0xF) == 0x9);
+                                    break;
+                            }
+                        }
+                        break;
+                    case "战斗动画":
+                        {
+                            Debug.Assert((address & 0xF) == 0x3);
+                            Debug.Assert(opCode == "80");
+                        }
+                        break;
+                    case "地形适应":
+                        {
+                            Debug.Assert((address & 0xF) == 0xB);
+                            Debug.Assert(opCode == "30");
+                        }
+                        break;
+                    case "伤害":
+                        {
+                            Debug.Assert((address & 0xF) == 0x5);
+                            Debug.Assert(opCode == "80");
+                        }
+                        break;
+                    case "台词":
+                        {
+                            Debug.Assert((address & 0xF) == 0x2);
+                            Debug.Assert(opCode == "30");
+                        }
+                        break;
+                    case "Ⓟ":
+                        {
+                            Debug.Assert((address & 0xf) == 0x1);
+                            Debug.Assert(opCode == "30");
+                        }
+                        break;
+                }
+            }
+        }
 
-                    );
+        static UnitWeapon? FindUnitWeapon(Unit? unit, string firstComment)
+        {
+            var weaponName = Regex.Replace(firstComment, @"\([^)]*\)", string.Empty).Replace(((char)0xfe0f).ToString(), string.Empty);
+            return unit.Weapons?.Where(w => string.Compare(w.Weapon.Name.Replace("🗺", string.Empty).Replace("－", "ー")
+                , weaponName.Replace("－", "ー"),
+                StringComparison.InvariantCulture) == 0).FirstOrDefault();
+        }
+        private static void ValidateUnitCode(string opCode, string firstComment, string secondComment,
+            string thirdComment, int address, int value, Unit? unit, Rom? playstationRom, bool isTransform)
+        {
+
+            UnitWeapon? unitWeaponFound = null;
+            Unit? unitLookup = null;
+            string? unitName = null;
+            if(secondComment.StartsWith("("))
+            {
+                unitName = secondComment.Replace("(", string.Empty).Replace(")", string.Empty);
+                unitLookup = GetUnitByName(playstationRom, unitName);
+                Debug.Assert(unitLookup != null);
+                unitWeaponFound = FindUnitWeapon(unitLookup, firstComment);
+                Debug.Assert(unitLookup != null);
+                var thirdLineParts = thirdComment.Split(arrowChar);
+                var attribute = thirdLineParts[0];
+                switch (attribute)
+                {
+                    case "弹药槽/序号":
+
+                        Debug.Assert(address == unitWeaponFound.BaseOffset + 1);
+                        Debug.Assert(opCode == "80");
+                        return;
+                    case "序号":
+                        Debug.Assert(address == unitWeaponFound.BaseOffset + 2);
+                        Debug.Assert(opCode == "30");
+                        return;
+                }
+                Debug.Assert(false);
                 return;
+            }
+            switch (firstComment)
+            {
+                //commands that apply to the unit itself
+                case "乘换機動戦士系":
+                    Debug.Assert(opCode == "80");
+                    Debug.Assert(address == unit.BaseOffset + 4);
+                    Debug.Assert(value == 0);
+                    return;
+                case "乘换ダンバイン系":
+                    Debug.Assert(opCode == "80");
+                    Debug.Assert(address == unit.BaseOffset + 4);
+                    Debug.Assert(value == 0x200);
+                    return;
+                case "移动类型空陆":
+                    Debug.Assert(address == unit.BaseOffset + 0x15);
+                    Debug.Assert(value == 1);
+                    return;
+                case "移动类型/力":
+                    Debug.Assert(address == unit.BaseOffset + 0x14);
+                    Debug.Assert(opCode == "80");
+                    return;
+                case "地形适应全A":
+                    Debug.Assert(address == unit.BaseOffset + 0x16);
+                    Debug.Assert(value == 0x4444);
+                    return;
+                case "地形适应空A宇A":
+                    Debug.Assert(address == unit.BaseOffset + 0x16);
+                    Debug.Assert(value == 0x4040);
+                    return;
+                case "武器/弹药槽数量":
+                    Debug.Assert(address == unit.BaseOffset + 0x1E);
+                    Debug.Assert(opCode == "80");
+                    return;
+                case "武器数量":
+                    Debug.Assert(address == unit.BaseOffset + 0x1E);
+                    Debug.Assert(opCode == "30");
+                    return;
+                case "弹药槽数量":
+                    Debug.Assert(address == unit.BaseOffset + 0x1F);
+                    Debug.Assert(opCode == "30");
+                    return;
+                case "メガカノン砲":
+                    Debug.Assert(unit?.Id == 0x106);
+                    return;
+                case "ギガブラスター":
+                    Debug.Assert(unit?.Id == 0x10d);
+                    return;
+                case "可被合体":
+                case "合体可":
+                    Debug.Assert(address == unit.BaseOffset + 0x7);
+                    Debug.Assert(opCode == "30");
+                    return;
+                case "二段变身":
+                    Debug.Assert(address == unit.BaseOffset + 0x9);
+                    Debug.Assert(opCode == "30");
+                    Debug.Assert((value & 0x40) != 0);
+                    return;
             }
             switch (secondComment)
             {
+                //secondary commands that apply to the unit or weapon 
+                //mentioned in the first comment
                 case "武器再编号":
                 case "弹药槽再编号":
-                case "武器/残弹槽数量":
+                case "武器/弹药槽数量":
+                case "武器数量":
+                case "分离可":
+                case "分离结果":
                     Debug.Assert(isTransform);
-                    var unitFor = GetUnitByName(playstationRom,firstComment);
+                    var unitFor = GetUnitByName(playstationRom, firstComment);
                     bool? found = false;
                     switch (secondComment)
                     {
                         case "武器再编号":
                             found = unitFor?.Weapons?.Any(w => w.BaseOffset + 2 == address);
-                            break;
+                            Debug.Assert(opCode == "30");
+                            return;
                         case "弹药槽再编号":
                             found = unitFor?.Weapons?.Any(w => w.BaseOffset + 1 == address);
-                            break;
-                        case "武器/残弹槽数量":
+                            Debug.Assert(opCode == "30");
+                            return;
+                        case "武器/弹药槽数量":
                             found = unitFor.BaseOffset + 0x1E == address;
-                            break;
+                            Debug.Assert(opCode == "80");
+                            return;
+                        case "武器数量":
+                            found = unitFor.BaseOffset + 0x1E == address;
+                            Debug.Assert(opCode == "30");
+                            return;
+                        case "分离可":
+                            Debug.Assert(address == unitFor.BaseOffset + 0x7);
+                            Debug.Assert(opCode == "30");
+                            Debug.Assert(value == 0x10);
+                            return;
+                        case "分离结果":
+                            Debug.Assert(address == unitFor.BaseOffset + 0x7);
+                            Debug.Assert(opCode == "30");
+                            Debug.Assert(value == 0x11);
+                            return;
 
                     }
                     Debug.Assert(found.HasValue && found.Value);
                     return;
+                case "弹药槽/序号":
+                    unitWeaponFound = FindUnitWeapon(unit, firstComment);
+                    Debug.Assert(unitWeaponFound != null);
+                    Debug.Assert(address == unitWeaponFound.BaseOffset + 1);
+                    Debug.Assert(opCode == "80");                    
+                    return;
             }
-            switch (firstComment)
+            var firstLineParts = firstComment.Split(arrowChar);
+            var attributeName = firstLineParts[0].Trim();
+            switch (attributeName)
             {
-                case "乘换機動戦士系":
-                    Debug.Assert(opCode == "80");
-                    Debug.Assert(address == unit.BaseOffset + 4);
-                    Debug.Assert(value == 0);                    
-                    break;
-                case "乘换ダンバイン系":
-                    Debug.Assert(opCode == "80");
-                    Debug.Assert(address == unit.BaseOffset + 4);
-                    Debug.Assert(value == 0x200);
-                    break;
-                case "移动类型空陆":
-                    Debug.Assert(address == unit.BaseOffset +0x15);
-                    Debug.Assert(value == 1);
-                    break;
-                case "移动类型/力":
+                case "图像":
+                    Debug.Assert(address == unit.BaseOffset + 0x2);
+                    return;
+                case "图标":
+                    Debug.Assert(address == unit.BaseOffset);
+                    return;
+                case "装甲":
+                    Debug.Assert(address == unit.BaseOffset + 0x18);
+                    Debug.Assert(opCode == "30");
+                    return;
+                case "运动性":
+                    Debug.Assert(address == unit.BaseOffset + 0x19);
+                    Debug.Assert(opCode == "30");
+                    return;
+                case "限界":
+                    Debug.Assert(address == unit.BaseOffset + 0x1a);
+                    Debug.Assert(opCode == "30");
+                    return;
+                case "移动力":
                     Debug.Assert(address == unit.BaseOffset + 0x14);
-                    Debug.Assert(opCode == "80");
-                    break;
-                case "地形适应全A":
-                    Debug.Assert(address == unit.BaseOffset + 0x16);
-                    Debug.Assert(value == 0x4444);
-                    break;
-                case "地形适应空A宇A":
-                    Debug.Assert(address == unit.BaseOffset + 0x16);
-                    Debug.Assert(value == 0x4040);
-                    break;
-                case "武器/残弹槽数量":
-                    Debug.Assert(address == unit.BaseOffset + 0x1E);
-                    Debug.Assert(opCode == "80"); break;
-                case "武器数量":
-                    Debug.Assert(address == unit.BaseOffset + 0x1E);
+                    Debug.Assert(opCode == "30"); 
+                    return;
+                case "弹药槽数量":
+                    Debug.Assert(address == unit.BaseOffset + 0x1F);
                     Debug.Assert(opCode == "30");
-                    break;
-                case "メガカノン砲":
-                    Debug.Assert(unit?.Id == 0x106);
-                    break;
-                case "ギガブラスター":
-                    Debug.Assert(unit?.Id == 0x10d);
-                    break;
-                case "可被合体":
-                    Debug.Assert(address == unit.BaseOffset + 0x7);
-                    Debug.Assert(opCode == "30");
-                    break;
+                    return;
+                case "无"://adding weapon
+                    Debug.Assert(address >= unit.BaseOffset + 0x20);
+                    Debug.Assert(address <= unit.BaseOffset + 0x29);
+                    Debug.Assert((address - unit.BaseOffset) % 3 == 2);
+                    return;
 
-                default:
-                    if (secondComment.StartsWith("弹药槽→")|| secondComment.StartsWith("序号→"))
-                    {
-                        firstComment = string.Format("{0} {1} {2}", firstComment, arrowChar, secondComment);
-                    }
-
-                    if (firstComment.Contains(arrowChar))
-                    {
-                        var firstLineParts = firstComment.Split(arrowChar);
-                        var weaponName = firstLineParts[0].Trim();
-                        var unitName = weaponName;
-                        var attributeName = weaponName;
-
-                        if (firstLineParts.Length > 1)
-                        {
-                            switch (attributeName)
-                            {
-
-                                case "图像":
-                                    Debug.Assert(address == unit.BaseOffset + 0x2);
-                                    break;
-                                case "图标":
-                                    Debug.Assert(address == unit.BaseOffset);
-                                    break;
-                                case "装甲":
-                                    Debug.Assert(address == unit.BaseOffset+0x18);
-                                    Debug.Assert(opCode == "30");
-                                    break;
-                                case "运动性":
-                                    Debug.Assert(address == unit.BaseOffset + 0x19);
-                                    Debug.Assert(opCode == "30");
-                                    break;
-                                case "限界":
-                                    Debug.Assert(address == unit.BaseOffset + 0x1a);
-                                    Debug.Assert(opCode == "30");
-                                    break;
-                                    Debug.Assert(address == unit.BaseOffset + 0x1a);
-                                    Debug.Assert(opCode == "30");
-                                    break;
-                                default:
-                                    {
-
-                                        weaponName = Regex.Replace(weaponName, @"\([^)]*\)", string.Empty).Replace(((char)0xfe0f).ToString(),string.Empty);
-                                        var weapon = unit.Weapons?.Where(w => string.Compare(w.Weapon.Name.Replace("🗺", string.Empty).Replace("－", "ー")
-                                            , weaponName.Replace("－", "ー"),
-                                            StringComparison.InvariantCulture) == 0).FirstOrDefault();
-                                        if (weapon != null)
-                                        {
-                                            if(secondComment.StartsWith("序号→"))
-                                                Debug.Assert(weapon.BaseOffset+2 == address);
-                                            else if (secondComment.StartsWith("弹药槽→"))
-                                                Debug.Assert(weapon.BaseOffset + 1 == address);
-                                            else
-                                                Debug.Assert(weapon.BaseOffset == address);
-                                        }
-                                        else
-                                        {
-                                            Unit unitLookup = GetUnitByName(playstationRom, unitName);
-                                            if (unitLookup != null)
-                                            {
-                                                Debug.Assert(address == unitLookup.BaseOffset + 7);
-                                                Debug.Assert(value == 0x08
-                                                    || value == 0x09
-                                                    || value == 0x18
-                                                    || value == 0x19
-                                                    || value == 0x1A);
-                                            }
-                                            else
-                                                Debug.Assert(false);
-
-                                        }
-                                    }
-                                    break;
-                            }
-                        }
-                        else
-                            Debug.Assert(false);
-
-                    }
-                    else
-                        Debug.Assert(false); 
-                    break;
             }
-        }
 
+            var weaponName = attributeName;
+            unitWeaponFound = FindUnitWeapon(unit, weaponName);
+            if (unitWeaponFound != null)
+            {
+                //weapon commands
+                //or wearpon changes
+                var secondCommentParts = secondComment.Split(arrowChar);
+                switch (secondCommentParts[0])
+                {
+                    case "弹药槽":
+                        Debug.Assert(address == unitWeaponFound.BaseOffset + 1);
+                        Debug.Assert(opCode == "30");
+                        return;
+                    case "序号":
+                        Debug.Assert(address == unitWeaponFound.BaseOffset + 2);
+                        Debug.Assert(opCode == "30");
+                        return;
+                    default:
+                        //no recorgnized command, must be a weapon name
+                        Debug.Assert(unitWeaponFound.BaseOffset == address);
+                        return;
+                }
+            }            
+            
+            unitName = weaponName;            
+
+            unitLookup = GetUnitByName(playstationRom, unitName);
+            if (unitLookup != null)
+            {
+                //must be unit a->b transform commands
+                Debug.Assert(address == unitLookup.BaseOffset + 7);
+                Debug.Assert(value == 0x08
+                    || value == 0x09
+                    || value == 0x18
+                    || value == 0x19
+                    || value == 0x1A);
+                return;
+            }
+
+            Debug.Assert(false);
+
+        }
         private static void ValidatePilotCode(string opCode, string firstComment, string secondComment, int address, int value, Pilot? pilot)
         {
             var firstLineParts = firstComment.Split(arrowChar);

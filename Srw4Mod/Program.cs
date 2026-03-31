@@ -123,7 +123,8 @@ namespace Srw4Mod
             DumpData(snesRom.Weapons);*/
             DumpData(playstationRom.Pilots);
             DumpData(playstationRom.Units);
-            //DumpData(playstationRom.Weapons);
+            DumpData(playstationRom.Weapons);
+
             WriterCheats(snes9xCheatFileName, bsnesCheatFileName,duckstationCheatFileName, snesRom, playstationRom);
 
             
